@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shared Cursor Demo</title>
+
+  <style>
+    html, body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-family: Arial, sans-serif;
+      background: #111;
+      color: white;
+    }
+
+    #info {
+      position: fixed;
+      top: 15px;
+      left: 15px;
+      z-index: 99999;
+      padding: 10px 14px;
+      border-radius: 10px;
+      background: rgba(0, 0, 0, 0.65);
+      pointer-events: none;
+    }
+
+    .remote-cursor {
+      position: fixed;
+      z-index: 99998;
+      pointer-events: none;
+      transform: translate(-2px, -2px);
+      transition: left 40ms linear, top 40ms linear;
+    }
+
+    .cursor-arrow {
+      width: 0;
+      height: 0;
+      border-top: 10px solid transparent;
+      border-bottom: 10px solid transparent;
+      border-left: 16px solid var(--cursor-color);
+      transform: rotate(-45deg);
+      filter: drop-shadow(0 1px 2px black);
+    }
+
+    .cursor-label {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      padding: 3px 7px;
+      border-radius: 5px;
+      background: var(--cursor-color);
+      color: white;
+      font-size: 12px;
+      white-space: nowrap;
+      box-shadow: 0 2px 5px rgba(0,0,0,.4);
+    }
+  </style>
+</head>
+
+<body>
+
+<div id="info">
+  Move your mouse around — everyone on this website can see it.
+</div>
+
+<!-- Firebase -->
+<script type="module">
+
+  import { initializeApp } from
+    "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
+
+  import {
+    getDatabase,
+    ref,
+    set,
+    onValue,
+    onDisconnect
+  } from
+    "https://www.gstatic.com/firebasejs/12.1.0/firebase-database.js";
+
+  /*
+    ==========================================================
+    PUT YOUR FIREBASE CONFIG HERE
+    ==========================================================
+  */
+
+  const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_PROJECT.firebaseapp.com",
+    databaseURL: "https://YOUR_PROJECT-default-rtdb.firebaseio.com",
+    projectId: "YOUR_PROJECT",
+    storageBucket: "YOUR_PROJECT.firebasestorage.app",
+    messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+    appId: "YOUR_APP_ID"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+
+  /*
+    ==========================================================
+    CREATE A RANDOM ID FOR THIS VISITOR
+    ==========================================================
+  */
+
+  const userId =
+    crypto.randomUUID();
+
+  const colors = [
+    "#ff3b30",
+    "#007aff",
+    "#34c759",
+    "#af52de",
+    "#ff9500",
+    "#00c7be",
+    "#ff2d55",
+    "#5856d6"
+  ];
+
+  const myColor =
+    colors[Math.floor(Math.random() * colors.length)];
+
+  const myName =
+    "User " + Math.floor(Math.random() * 9999);
+
+  const myRef =
+    ref(db, "cursors/" + userId);
+
+  /*
+    ==========================================================
+    REMOVE OUR CURSOR WHEN WE LEAVE
+    ==========================================================
+  */
+
+  onDisconnect(myRef).remove();
+
+  /*
+    ==========================================================
+    SEND MOUSE POSITION
+    ==========================================================
+  */
+
+  let lastSent = 0;
+
+  document.addEventListener("mousemove", (event) => {
+
+    const now = performance.now();
+
+    // Limit updates to about 30 per second
+    if (now - lastSent < 33) return;
+
+    lastSent = now;
+
+    set(myRef, {
+      x: event.clientX,
+      y: event.clientY,
+      name: myName,
+      color: myColor,
+      updated: Date.now()
+    });
+
+  });
+
+  /*
+    ==========================================================
+    RECEIVE EVERYONE ELSE'S CURSORS
+    ==========================================================
+  */
+
+  const cursorsRef =
+    ref(db, "cursors");
+
+  const cursorElements = new Map();
+
+  onValue(cursorsRef, (snapshot) => {
+
+    const users = snapshot.val() || {};
+
+    /*
+      Create/update cursors
+    */
+
+    for (const id in users) {
+
+      if (id === userId) continue;
+
+      const user = users[id];
+
+      let cursor = cursorElements.get(id);
+
+      if (!cursor) {
+
+        cursor = document.createElement("div");
+
+        cursor.className = "remote-cursor";
+
+        cursor.innerHTML = `
+          <div class="cursor-arrow"></div>
+          <div class="cursor-label"></div>
+        `;
+
+        document.body.appendChild(cursor);
+
+        cursorElements.set(id, cursor);
+      }
+
+      cursor.style.left = user.x + "px";
+      cursor.style.top = user.y + "px";
+
+      cursor.style.setProperty(
+        "--cursor-color",
+        user.color
+      );
+
+      cursor.querySelector(".cursor-label").textContent =
+        user.name;
+    }
+
+    /*
+      Remove cursors belonging to users who left
+    */
+
+    for (const [id, element] of cursorElements) {
+
+      if (!users[id]) {
+
+        element.remove();
+        cursorElements.delete(id);
+
+      }
+    }
+
+  });
+
+</script>
+
+</body>
+</html>
