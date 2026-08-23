@@ -1,106 +1,816 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Shared Cursors</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Shared World</title>
 
-  <style>
-    html, body {
-      margin: 0;
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      background: #111;
-      font-family: Arial, sans-serif;
-    }
+<style>
+*{box-sizing:border-box}
 
-    #status {
-      position: fixed;
-      top: 15px;
-      left: 15px;
-      z-index: 100000;
-      padding: 10px 14px;
-      border-radius: 10px;
-      background: rgba(0,0,0,.75);
-      color: white;
-      font-size: 14px;
-    }
+html,body{
+  margin:0;
+  width:100%;
+  height:100%;
+  overflow:hidden;
+  font-family:Arial,sans-serif;
+  background:#111;
+  color:white
+}
 
-    .cursor {
-      position: fixed;
-      z-index: 99999;
-      pointer-events: none;
-      left: 0;
-      top: 0;
-      transition: left .04s linear, top .04s linear;
-    }
+button{
+  border:0;
+  border-radius:9px;
+  padding:9px 13px;
+  font-weight:bold;
+  cursor:pointer
+}
 
-    .arrow {
-      width: 0;
-      height: 0;
-      border-top: 9px solid transparent;
-      border-bottom: 9px solid transparent;
-      border-left: 15px solid var(--color);
-      transform: rotate(-45deg);
-      filter: drop-shadow(1px 2px 2px #000);
-    }
+button:hover{
+  filter:brightness(1.12)
+}
 
-    .name {
-      position: absolute;
-      left: 10px;
-      top: 12px;
-      background: var(--color);
-      color: white;
-      padding: 3px 7px;
-      border-radius: 5px;
-      font-size: 12px;
-      white-space: nowrap;
-    }
-  </style>
+/* LOGIN */
+
+#loginScreen{
+  position:fixed;
+  inset:0;
+  z-index:999999;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:#111
+}
+
+#loginBox{
+  width:360px;
+  max-width:90vw;
+  padding:28px;
+  border-radius:18px;
+  background:#222;
+  box-shadow:0 20px 60px #000;
+}
+
+#loginBox h1{
+  margin-top:0;
+  text-align:center
+}
+
+#loginBox input{
+  width:100%;
+  margin:6px 0;
+  padding:12px;
+  border:0;
+  border-radius:8px;
+  outline:none;
+}
+
+#loginButton{
+  width:100%;
+  margin-top:10px;
+  background:#4c8dff;
+  color:white
+}
+
+#signupButton{
+  width:100%;
+  margin-top:8px;
+  background:#444;
+  color:white
+}
+
+#loginError{
+  color:#ff6666;
+  min-height:20px;
+  margin-top:10px;
+  font-size:13px;
+}
+
+/* TOP BAR */
+
+#topbar{
+  position:fixed;
+  top:12px;
+  left:12px;
+  z-index:100000;
+  display:flex;
+  gap:8px;
+  align-items:center
+}
+
+#drawButton{
+  background:#ffcc00;
+  color:#111
+}
+
+#chatButton{
+  background:#4c8dff;
+  color:white
+}
+
+#logoutButton{
+  background:#d33;
+  color:white
+}
+
+#status{
+  padding:8px 11px;
+  border-radius:9px;
+  background:rgba(0,0,0,.75);
+  font-size:13px
+}
+
+/* CURSORS */
+
+.remote-cursor{
+  position:fixed;
+  z-index:90000;
+  pointer-events:none;
+  left:0;
+  top:0;
+  transition:left .04s linear,top .04s linear
+}
+
+.cursor-arrow{
+  width:0;
+  height:0;
+  border-top:9px solid transparent;
+  border-bottom:9px solid transparent;
+  border-left:15px solid var(--cursor-color);
+  transform:rotate(-45deg);
+  filter:drop-shadow(1px 2px 2px #000)
+}
+
+.cursor-name{
+  position:absolute;
+  left:10px;
+  top:12px;
+  padding:3px 7px;
+  border-radius:5px;
+  background:var(--cursor-color);
+  color:white;
+  white-space:nowrap;
+  font-size:12px
+}
+
+/* PAINTINGS */
+
+.painting{
+  position:fixed;
+  width:220px;
+  height:180px;
+  z-index:50000;
+  background:white;
+  border:8px solid #6e4428;
+  border-radius:3px;
+  box-shadow:0 8px 25px rgba(0,0,0,.5);
+  user-select:none;
+  touch-action:none
+}
+
+.painting canvas{
+  width:100%;
+  height:100%;
+  display:block;
+  background:white;
+  pointer-events:none
+}
+
+.painting-label{
+  position:absolute;
+  bottom:-27px;
+  left:0;
+  padding:3px 6px;
+  background:rgba(0,0,0,.7);
+  border-radius:4px;
+  font-size:11px;
+  white-space:nowrap
+}
+
+.delete-painting{
+  position:absolute;
+  right:-12px;
+  top:-12px;
+  width:25px;
+  height:25px;
+  padding:0;
+  border-radius:50%;
+  background:#e53935;
+  color:white;
+  display:none
+}
+
+.painting.mine:hover .delete-painting{
+  display:block
+}
+
+#emptyPaintings{
+  position:fixed;
+  left:50%;
+  top:50%;
+  transform:translate(-50%,-50%);
+  color:#777;
+  pointer-events:none;
+  text-align:center
+}
+
+/* DRAW */
+
+#drawModal{
+  position:fixed;
+  inset:0;
+  z-index:200000;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  background:rgba(0,0,0,.75)
+}
+
+#drawPanel{
+  width:min(600px,92vw);
+  padding:18px;
+  border-radius:15px;
+  background:#222;
+  box-shadow:0 15px 50px rgba(0,0,0,.6)
+}
+
+#drawCanvas{
+  width:100%;
+  aspect-ratio:4/3;
+  display:block;
+  background:white;
+  border-radius:8px;
+  cursor:crosshair;
+  touch-action:none
+}
+
+#drawControls{
+  display:flex;
+  gap:8px;
+  margin-top:12px;
+  align-items:center;
+  flex-wrap:wrap
+}
+
+#clearDrawing{
+  background:#555;
+  color:white
+}
+
+#createPainting{
+  background:#4caf50;
+  color:white
+}
+
+#cancelDrawing{
+  background:#d33;
+  color:white
+}
+
+/* CHAT */
+
+#chatPanel{
+  position:fixed;
+  right:15px;
+  bottom:15px;
+  width:310px;
+  height:380px;
+  z-index:150000;
+  display:none;
+  flex-direction:column;
+  background:rgba(25,25,25,.96);
+  border-radius:14px;
+  box-shadow:0 10px 40px rgba(0,0,0,.5);
+  overflow:hidden
+}
+
+#chatHeader{
+  padding:12px;
+  font-weight:bold;
+  background:#333
+}
+
+#messages{
+  flex:1;
+  overflow-y:auto;
+  padding:10px
+}
+
+.message{
+  margin-bottom:9px;
+  word-break:break-word
+}
+
+.message-name{
+  font-weight:bold;
+  font-size:12px
+}
+
+.message-text{
+  margin-top:2px
+}
+
+#chatInputRow{
+  display:flex;
+  padding:8px;
+  gap:6px;
+  background:#292929
+}
+
+#chatInput{
+  flex:1;
+  min-width:0;
+  border:0;
+  border-radius:8px;
+  padding:9px;
+  outline:none
+}
+
+#sendChat{
+  background:#4c8dff;
+  color:white
+}
+</style>
 </head>
 
 <body>
 
-<div id="status">Connecting...</div>
+<!-- LOGIN -->
+
+<div id="loginScreen">
+
+  <div id="loginBox">
+
+    <h1>🌎 Shared World</h1>
+
+    <input
+      id="displayName"
+      placeholder="Display name"
+      maxlength="24"
+      autocomplete="nickname">
+
+    <input
+      id="email"
+      type="email"
+      placeholder="Email">
+
+    <input
+      id="password"
+      type="password"
+      placeholder="Password"
+      autocomplete="current-password">
+
+    <button id="loginButton">
+      Log In
+    </button>
+
+    <button id="signupButton">
+      Create Account
+    </button>
+
+    <div id="loginError"></div>
+
+  </div>
+
+</div>
+
+
+<!-- MAIN WORLD -->
+
+<div id="topbar">
+
+  <button id="drawButton">
+    🎨 Draw
+  </button>
+
+  <button id="chatButton">
+    💬 Chat
+  </button>
+
+  <button id="logoutButton">
+    Log Out
+  </button>
+
+  <div id="status">
+    Connecting...
+  </div>
+
+</div>
+
+<div id="emptyPaintings">
+  Draw something and create the first painting!
+</div>
+
+
+<!-- DRAW WINDOW -->
+
+<div id="drawModal">
+
+  <div id="drawPanel">
+
+    <h2>🎨 Create a Painting</h2>
+
+    <p id="paintingCount">
+      Paintings: 0 / 5
+    </p>
+
+    <canvas
+      id="drawCanvas"
+      width="800"
+      height="600">
+    </canvas>
+
+    <div id="drawControls">
+
+      <label>
+        Brush:
+        <input
+          id="brushSize"
+          type="range"
+          min="1"
+          max="40"
+          value="7">
+      </label>
+
+      <button id="clearDrawing">
+        Clear
+      </button>
+
+      <button id="createPainting">
+        Create Painting
+      </button>
+
+      <button id="cancelDrawing">
+        Cancel
+      </button>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+<!-- CHAT -->
+
+<div id="chatPanel">
+
+  <div id="chatHeader">
+    💬 Shared Chat
+  </div>
+
+  <div id="messages"></div>
+
+  <div id="chatInputRow">
+
+    <input
+      id="chatInput"
+      maxlength="300"
+      placeholder="Say something...">
+
+    <button id="sendChat">
+      Send
+    </button>
+
+  </div>
+
+</div>
+
 
 <script type="module">
 
-import { initializeApp }
-  from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
+import {
+  initializeApp
+} from
+"https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
+
+import {
+  getAuth,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  updateProfile,
+  onAuthStateChanged,
+  signOut
+} from
+"https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
 
 import {
   getDatabase,
   ref,
   set,
+  push,
   onValue,
-  onDisconnect
-} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-database.js";
+  onDisconnect,
+  remove
+} from
+"https://www.gstatic.com/firebasejs/12.1.0/firebase-database.js";
 
 
-/* ================================
+/* =========================================================
    FIREBASE
-================================ */
+========================================================= */
 
 const firebaseConfig = {
-  apiKey: "AIzaSyAdNB_wjlrAgC3wfIO25Hz-DtDDpvYOQcU",
-  authDomain: "curster-2fee2.firebaseapp.com",
-  databaseURL: "https://curster-2fee2-default-rtdb.firebaseio.com",
-  projectId: "curster-2fee2",
-  storageBucket: "curster-2fee2.firebasestorage.app",
-  messagingSenderId: "129479890927",
-  appId: "1:129479890927:web:ca86b8b7e9aa08b3ab881a"
+
+  apiKey:
+    "AIzaSyAdNB_wjlrAgC3wfIO25Hz-DtDDpvYOQcU",
+
+  authDomain:
+    "curster-2fee2.firebaseapp.com",
+
+  databaseURL:
+    "https://curster-2fee2-default-rtdb.firebaseio.com",
+
+  projectId:
+    "curster-2fee2",
+
+  storageBucket:
+    "curster-2fee2.firebasestorage.app",
+
+  messagingSenderId:
+    "129479890927",
+
+  appId:
+    "1:129479890927:web:ca86b8b7e9aa08b3ab881a"
 };
 
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
+
+const app =
+  initializeApp(firebaseConfig);
+
+const auth =
+  getAuth(app);
+
+const db =
+  getDatabase(app);
 
 
-/* ================================
-   THIS USER
-================================ */
+/* =========================================================
+   LOGIN ELEMENTS
+========================================================= */
 
-const id = crypto.randomUUID();
+const loginScreen =
+  document.getElementById(
+    "loginScreen"
+  );
+
+const loginError =
+  document.getElementById(
+    "loginError"
+  );
+
+
+/* =========================================================
+   CREATE ACCOUNT
+========================================================= */
+
+document
+  .getElementById(
+    "signupButton"
+  )
+  .onclick =
+  async () => {
+
+    loginError.textContent =
+      "";
+
+    const name =
+      document
+        .getElementById(
+          "displayName"
+        )
+        .value
+        .trim();
+
+    const email =
+      document
+        .getElementById(
+          "email"
+        )
+        .value
+        .trim();
+
+    const password =
+      document
+        .getElementById(
+          "password"
+        )
+        .value;
+
+
+    if (!name) {
+
+      loginError.textContent =
+        "Enter a display name.";
+
+      return;
+    }
+
+    if (name.length < 2) {
+
+      loginError.textContent =
+        "Your name must be at least 2 characters.";
+
+      return;
+    }
+
+    if (!email) {
+
+      loginError.textContent =
+        "Enter an email address.";
+
+      return;
+    }
+
+    if (password.length < 6) {
+
+      loginError.textContent =
+        "Password must be at least 6 characters.";
+
+      return;
+    }
+
+
+    try {
+
+      const credential =
+        await createUserWithEmailAndPassword(
+          auth,
+          email,
+          password
+        );
+
+
+      await updateProfile(
+        credential.user,
+        {
+          displayName: name
+        }
+      );
+
+
+      await set(
+        ref(
+          db,
+          "users/" +
+          credential.user.uid
+        ),
+        {
+          name: name,
+          created: Date.now()
+        }
+      );
+
+
+    } catch (error) {
+
+      loginError.textContent =
+        friendlyAuthError(
+          error
+        );
+    }
+  };
+
+
+/* =========================================================
+   LOGIN
+========================================================= */
+
+document
+  .getElementById(
+    "loginButton"
+  )
+  .onclick =
+  async () => {
+
+    loginError.textContent =
+      "";
+
+    const email =
+      document
+        .getElementById(
+          "email"
+        )
+        .value
+        .trim();
+
+    const password =
+      document
+        .getElementById(
+          "password"
+        )
+        .value;
+
+
+    if (!email || !password) {
+
+      loginError.textContent =
+        "Enter your email and password.";
+
+      return;
+    }
+
+
+    try {
+
+      await signInWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
+
+    } catch (error) {
+
+      loginError.textContent =
+        friendlyAuthError(
+          error
+        );
+    }
+  };
+
+
+/* =========================================================
+   FRIENDLY AUTH ERRORS
+========================================================= */
+
+function friendlyAuthError(
+  error
+) {
+
+  switch (
+    error.code
+  ) {
+
+    case
+    "auth/email-already-in-use":
+      return "That email already has an account.";
+
+    case
+    "auth/invalid-email":
+      return "That email address isn't valid.";
+
+    case
+    "auth/weak-password":
+      return "That password is too weak.";
+
+    case
+    "auth/invalid-credential":
+      return "Incorrect email or password.";
+
+    case
+    "auth/user-not-found":
+      return "No account was found with that email.";
+
+    default:
+      return error.message;
+  }
+}
+
+
+/* =========================================================
+   LOGOUT
+========================================================= */
+
+document
+  .getElementById(
+    "logoutButton"
+  )
+  .onclick =
+  async () => {
+
+    if (
+      currentUserId
+    ) {
+
+      await remove(
+        ref(
+          db,
+          "cursors/" +
+          currentUserId
+        )
+      );
+    }
+
+    await signOut(auth);
+  };
+
+
+/* =========================================================
+   USER STATE
+========================================================= */
+
+let currentUserId =
+  null;
+
+let currentUserName =
+  null;
+
+let currentUserColor =
+  null;
+
+let myCursorRef =
+  null;
+
 
 const colors = [
   "#ff3b30",
@@ -110,131 +820,1306 @@ const colors = [
   "#ff9500",
   "#00c7be",
   "#ff2d55",
-  "#5856d6"
+  "#5856d6",
+  "#ff6b00",
+  "#00a8ff"
 ];
 
-const color =
-  colors[Math.floor(Math.random() * colors.length)];
 
-const name =
-  "User " + Math.floor(Math.random() * 10000);
+function getColorForUser(
+  uid
+) {
 
-const myRef = ref(db, "cursors/" + id);
+  let hash = 0;
 
+  for (
+    let i = 0;
+    i < uid.length;
+    i++
+  ) {
 
-/* ================================
-   CONNECTION STATUS
-================================ */
-
-const connectedRef = ref(db, ".info/connected");
-
-onValue(connectedRef, snapshot => {
-
-  const status = document.getElementById("status");
-
-  if (snapshot.val() === true) {
-    status.textContent = "🟢 Connected";
-  } else {
-    status.textContent = "🔴 Disconnected";
+    hash =
+      (
+        hash * 31 +
+        uid.charCodeAt(i)
+      ) >>> 0;
   }
 
-});
+  return colors[
+    hash % colors.length
+  ];
+}
 
 
-/* ================================
-   DELETE WHEN LEAVING
-================================ */
+/* =========================================================
+   AUTH STATE
+========================================================= */
 
-onDisconnect(myRef).remove();
+onAuthStateChanged(
+  auth,
+  async user => {
 
+    if (!user) {
 
-/* ================================
-   SEND CURSOR
-================================ */
+      loginScreen.style.display =
+        "flex";
 
-let lastUpdate = 0;
+      currentUserId =
+        null;
 
-document.addEventListener("mousemove", event => {
-
-  const now = performance.now();
-
-  if (now - lastUpdate < 30) return;
-
-  lastUpdate = now;
-
-  set(myRef, {
-    x: event.clientX,
-    y: event.clientY,
-    name: name,
-    color: color
-  });
-
-});
-
-
-/* ================================
-   RECEIVE EVERYONE
-================================ */
-
-const allCursors = ref(db, "cursors");
-
-const elements = new Map();
-
-onValue(allCursors, snapshot => {
-
-  const users = snapshot.val() || {};
-
-  for (const userId in users) {
-
-    if (userId === id) continue;
-
-    const user = users[userId];
-
-    let cursor = elements.get(userId);
-
-    if (!cursor) {
-
-      cursor = document.createElement("div");
-
-      cursor.className = "cursor";
-
-      cursor.innerHTML = `
-        <div class="arrow"></div>
-        <div class="name"></div>
-      `;
-
-      document.body.appendChild(cursor);
-
-      elements.set(userId, cursor);
+      return;
     }
 
-    cursor.style.left = user.x + "px";
-    cursor.style.top = user.y + "px";
 
-    cursor.style.setProperty(
-      "--color",
-      user.color
+    loginScreen.style.display =
+      "none";
+
+
+    currentUserId =
+      user.uid;
+
+    currentUserName =
+      user.displayName ||
+      "User";
+
+    currentUserColor =
+      getColorForUser(
+        user.uid
+      );
+
+
+    startWorld();
+  }
+);
+
+
+/* =========================================================
+   WORLD
+========================================================= */
+
+let worldStarted =
+  false;
+
+function startWorld() {
+
+  if (worldStarted) {
+    return;
+  }
+
+  worldStarted =
+    true;
+
+
+  myCursorRef =
+    ref(
+      db,
+      "cursors/" +
+      currentUserId
     );
 
-    cursor.querySelector(".name").textContent =
-      user.name;
-  }
+
+  onDisconnect(
+    myCursorRef
+  ).remove();
 
 
-  /* Remove people who left */
+  startCursors();
 
-  for (const [userId, element] of elements) {
+  startPaintings();
 
-    if (!users[userId]) {
+  startChat();
+}
 
-      element.remove();
-      elements.delete(userId);
 
+/* =========================================================
+   CURSORS
+========================================================= */
+
+function startCursors() {
+
+  const cursorsRef =
+    ref(db, "cursors");
+
+  const connectedRef =
+    ref(db, ".info/connected");
+
+
+  onValue(
+    connectedRef,
+    snapshot => {
+
+      document.getElementById(
+        "status"
+      ).textContent =
+        snapshot.val()
+          ? "🟢 Connected"
+          : "🔴 Disconnected";
+    }
+  );
+
+
+  let lastUpdate = 0;
+
+
+  document.addEventListener(
+    "mousemove",
+    event => {
+
+      if (!currentUserId) {
+        return;
+      }
+
+      const now =
+        Date.now();
+
+      if (
+        now - lastUpdate <
+        33
+      ) {
+        return;
+      }
+
+      lastUpdate =
+        now;
+
+
+      set(
+        myCursorRef,
+        {
+          x:
+            event.clientX,
+
+          y:
+            event.clientY,
+
+          name:
+            currentUserName,
+
+          color:
+            currentUserColor,
+
+          lastSeen:
+            now
+        }
+      );
+    }
+  );
+
+
+  const elements =
+    new Map();
+
+
+  onValue(
+    cursorsRef,
+    snapshot => {
+
+      const users =
+        snapshot.val() || {};
+
+      const now =
+        Date.now();
+
+
+      for (
+        const id in users
+      ) {
+
+        if (
+          id ===
+          currentUserId
+        ) {
+          continue;
+        }
+
+
+        const user =
+          users[id];
+
+
+        if (
+          !user.lastSeen ||
+          now - user.lastSeen >
+          10000
+        ) {
+
+          const old =
+            elements.get(id);
+
+          if (old) {
+
+            old.remove();
+
+            elements.delete(id);
+          }
+
+          continue;
+        }
+
+
+        let cursor =
+          elements.get(id);
+
+
+        if (!cursor) {
+
+          cursor =
+            document.createElement(
+              "div"
+            );
+
+          cursor.className =
+            "remote-cursor";
+
+          cursor.innerHTML = `
+            <div class="cursor-arrow"></div>
+            <div class="cursor-name"></div>
+          `;
+
+          document.body.appendChild(
+            cursor
+          );
+
+          elements.set(
+            id,
+            cursor
+          );
+        }
+
+
+        cursor.style.left =
+          user.x + "px";
+
+        cursor.style.top =
+          user.y + "px";
+
+        cursor.style.setProperty(
+          "--cursor-color",
+          user.color
+        );
+
+        cursor.querySelector(
+          ".cursor-name"
+        ).textContent =
+          user.name;
+      }
+
+
+      for (
+        const [
+          id,
+          element
+        ]
+        of elements
+      ) {
+
+        if (
+          !users[id] ||
+          now -
+          users[id].lastSeen >
+          10000
+        ) {
+
+          element.remove();
+
+          elements.delete(id);
+        }
+      }
+    }
+  );
+}
+
+
+/* =========================================================
+   PAINTINGS
+========================================================= */
+
+let currentPaintings = {};
+
+const paintingElements =
+  new Map();
+
+const PAINTING_W =
+  220;
+
+const PAINTING_H =
+  180;
+
+const MAX_PAINTINGS =
+  5;
+
+
+function myPaintingCount() {
+
+  return Object.values(
+    currentPaintings
+  ).filter(
+    p =>
+      p.owner ===
+      currentUserId
+  ).length;
+}
+
+
+function updatePaintingCount() {
+
+  document.getElementById(
+    "paintingCount"
+  ).textContent =
+    `Paintings: ${myPaintingCount()} / 5`;
+}
+
+
+function overlap(
+  a,
+  b
+) {
+
+  return !(
+    a.x + PAINTING_W <= b.x ||
+    a.x >= b.x + PAINTING_W ||
+    a.y + PAINTING_H <= b.y ||
+    a.y >= b.y + PAINTING_H
+  );
+}
+
+
+function findFreePosition() {
+
+  const maxX =
+    Math.max(
+      10,
+      window.innerWidth -
+      PAINTING_W -
+      10
+    );
+
+  const maxY =
+    Math.max(
+      10,
+      window.innerHeight -
+      PAINTING_H -
+      10
+    );
+
+
+  for (
+    let attempt = 0;
+    attempt < 300;
+    attempt++
+  ) {
+
+    const candidate = {
+
+      x:
+        Math.random() *
+        maxX,
+
+      y:
+        Math.random() *
+        maxY
+    };
+
+
+    let collision =
+      false;
+
+
+    for (
+      const painting
+      of Object.values(
+        currentPaintings
+      )
+    ) {
+
+      if (
+        overlap(
+          candidate,
+          painting
+        )
+      ) {
+
+        collision =
+          true;
+
+        break;
+      }
     }
 
+
+    if (!collision) {
+      return candidate;
+    }
   }
 
-});
+
+  return null;
+}
+
+
+function clampPosition(
+  x,
+  y
+) {
+
+  return {
+
+    x:
+      Math.max(
+        10,
+        Math.min(
+          x,
+          window.innerWidth -
+          PAINTING_W -
+          10
+        )
+      ),
+
+    y:
+      Math.max(
+        10,
+        Math.min(
+          y,
+          window.innerHeight -
+          PAINTING_H -
+          10
+        )
+      )
+  };
+}
+
+
+function paintingCollision(
+  id,
+  x,
+  y
+) {
+
+  const candidate = {
+    x,
+    y
+  };
+
+
+  for (
+    const [
+      otherId,
+      painting
+    ]
+    of Object.entries(
+      currentPaintings
+    )
+  ) {
+
+    if (
+      otherId === id
+    ) {
+      continue;
+    }
+
+
+    if (
+      overlap(
+        candidate,
+        painting
+      )
+    ) {
+
+      return true;
+    }
+  }
+
+
+  return false;
+}
+
+
+/* =========================================================
+   DRAWING
+========================================================= */
+
+const drawModal =
+  document.getElementById(
+    "drawModal"
+  );
+
+const canvas =
+  document.getElementById(
+    "drawCanvas"
+  );
+
+const ctx =
+  canvas.getContext("2d");
+
+let drawing =
+  false;
+
+let lastX = 0;
+let lastY = 0;
+
+
+function clearCanvas() {
+
+  ctx.fillStyle =
+    "white";
+
+  ctx.fillRect(
+    0,
+    0,
+    canvas.width,
+    canvas.height
+  );
+}
+
+clearCanvas();
+
+
+function canvasPosition(
+  event
+) {
+
+  const rect =
+    canvas.getBoundingClientRect();
+
+  return {
+
+    x:
+      (event.clientX -
+       rect.left) *
+      canvas.width /
+      rect.width,
+
+    y:
+      (event.clientY -
+       rect.top) *
+      canvas.height /
+      rect.height
+  };
+}
+
+
+canvas.addEventListener(
+  "pointerdown",
+  event => {
+
+    drawing = true;
+
+    const p =
+      canvasPosition(
+        event
+      );
+
+    lastX =
+      p.x;
+
+    lastY =
+      p.y;
+  }
+);
+
+
+canvas.addEventListener(
+  "pointermove",
+  event => {
+
+    if (!drawing) {
+      return;
+    }
+
+    const p =
+      canvasPosition(
+        event
+      );
+
+
+    ctx.strokeStyle =
+      "#111";
+
+    ctx.lineWidth =
+      Number(
+        document.getElementById(
+          "brushSize"
+        ).value
+      );
+
+    ctx.lineCap =
+      "round";
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+      lastX,
+      lastY
+    );
+
+    ctx.lineTo(
+      p.x,
+      p.y
+    );
+
+    ctx.stroke();
+
+
+    lastX =
+      p.x;
+
+    lastY =
+      p.y;
+  }
+);
+
+
+canvas.addEventListener(
+  "pointerup",
+  () => {
+    drawing = false;
+  }
+);
+
+
+canvas.addEventListener(
+  "pointercancel",
+  () => {
+    drawing = false;
+  }
+);
+
+
+/* OPEN DRAW */
+
+document.getElementById(
+  "drawButton"
+).onclick = () => {
+
+  updatePaintingCount();
+
+  if (
+    myPaintingCount() >=
+    MAX_PAINTINGS
+  ) {
+
+    alert(
+      "You already have 5 paintings."
+    );
+
+    return;
+  }
+
+  drawModal.style.display =
+    "flex";
+};
+
+
+/* CLEAR */
+
+document.getElementById(
+  "clearDrawing"
+).onclick =
+  clearCanvas;
+
+
+/* CANCEL */
+
+document.getElementById(
+  "cancelDrawing"
+).onclick =
+  () => {
+
+    drawModal.style.display =
+      "none";
+
+    clearCanvas();
+  };
+
+
+/* CREATE */
+
+document.getElementById(
+  "createPainting"
+).onclick =
+  async () => {
+
+    if (
+      myPaintingCount() >=
+      MAX_PAINTINGS
+    ) {
+
+      alert(
+        "You already have 5 paintings."
+      );
+
+      return;
+    }
+
+
+    const position =
+      findFreePosition();
+
+
+    if (!position) {
+
+      alert(
+        "There isn't enough room for another painting."
+      );
+
+      return;
+    }
+
+
+    const id =
+      push(
+        ref(db, "paintings")
+      ).key;
+
+
+    await set(
+      ref(
+        db,
+        "paintings/" +
+        id
+      ),
+      {
+
+        owner:
+          currentUserId,
+
+        ownerName:
+          currentUserName,
+
+        image:
+          canvas.toDataURL(
+            "image/png"
+          ),
+
+        x:
+          position.x,
+
+        y:
+          position.y,
+
+        created:
+          Date.now()
+      }
+    );
+
+
+    drawModal.style.display =
+      "none";
+
+    clearCanvas();
+  };
+
+
+/* =========================================================
+   RENDER PAINTINGS
+========================================================= */
+
+function startPaintings() {
+
+  onValue(
+    ref(db, "paintings"),
+    snapshot => {
+
+      currentPaintings =
+        snapshot.val() || {};
+
+
+      document.getElementById(
+        "emptyPaintings"
+      ).style.display =
+        Object.keys(
+          currentPaintings
+        ).length
+          ? "none"
+          : "block";
+
+
+      for (
+        const id in currentPaintings
+      ) {
+
+        const painting =
+          currentPaintings[id];
+
+
+        let element =
+          paintingElements.get(id);
+
+
+        if (!element) {
+
+          element =
+            document.createElement(
+              "div"
+            );
+
+          element.className =
+            "painting";
+
+
+          element.innerHTML = `
+            <canvas
+              width="204"
+              height="164">
+            </canvas>
+
+            <div class="painting-label"></div>
+
+            <button
+              class="delete-painting">
+              ×
+            </button>
+          `;
+
+
+          document.body.appendChild(
+            element
+          );
+
+          paintingElements.set(
+            id,
+            element
+          );
+
+
+          const image =
+            new Image();
+
+
+          image.onload = () => {
+
+            const paintingCanvas =
+              element.querySelector(
+                "canvas"
+              );
+
+            const paintingCtx =
+              paintingCanvas
+                .getContext("2d");
+
+            paintingCtx.drawImage(
+              image,
+              0,
+              0,
+              204,
+              164
+            );
+          };
+
+
+          image.src =
+            painting.image;
+
+
+          element.querySelector(
+            ".painting-label"
+          ).textContent =
+            "🎨 " +
+            painting.ownerName;
+
+
+          if (
+            painting.owner ===
+            currentUserId
+          ) {
+
+            element.classList.add(
+              "mine"
+            );
+          }
+
+
+          element.querySelector(
+            ".delete-painting"
+          ).onclick =
+            async event => {
+
+              event.stopPropagation();
+
+              if (
+                painting.owner ===
+                currentUserId
+              ) {
+
+                await remove(
+                  ref(
+                    db,
+                    "paintings/" +
+                    id
+                  )
+                );
+              }
+            };
+
+
+          setupDrag(
+            element,
+            id
+          );
+        }
+
+
+        element.style.left =
+          painting.x + "px";
+
+        element.style.top =
+          painting.y + "px";
+      }
+
+
+      for (
+        const [
+          id,
+          element
+        ]
+        of paintingElements
+      ) {
+
+        if (
+          !currentPaintings[id]
+        ) {
+
+          element.remove();
+
+          paintingElements.delete(
+            id
+          );
+        }
+      }
+
+
+      updatePaintingCount();
+    }
+  );
+}
+
+
+/* =========================================================
+   DRAG
+========================================================= */
+
+function setupDrag(
+  element,
+  id
+) {
+
+  let dragging =
+    false;
+
+  let offsetX = 0;
+  let offsetY = 0;
+
+
+  element.addEventListener(
+    "pointerdown",
+    event => {
+
+      if (
+        event.target.closest(
+          ".delete-painting"
+        )
+      ) {
+        return;
+      }
+
+
+      const painting =
+        currentPaintings[id];
+
+      if (!painting) {
+        return;
+      }
+
+
+      dragging =
+        true;
+
+
+      offsetX =
+        event.clientX -
+        painting.x;
+
+      offsetY =
+        event.clientY -
+        painting.y;
+
+
+      element.setPointerCapture(
+        event.pointerId
+      );
+    }
+  );
+
+
+  element.addEventListener(
+    "pointermove",
+    event => {
+
+      if (!dragging) {
+        return;
+      }
+
+
+      const painting =
+        currentPaintings[id];
+
+      if (!painting) {
+        return;
+      }
+
+
+      const position =
+        clampPosition(
+          event.clientX -
+          offsetX,
+
+          event.clientY -
+          offsetY
+        );
+
+
+      if (
+        paintingCollision(
+          id,
+          position.x,
+          position.y
+        )
+      ) {
+        return;
+      }
+
+
+      element.style.left =
+        position.x + "px";
+
+      element.style.top =
+        position.y + "px";
+
+
+      painting.x =
+        position.x;
+
+      painting.y =
+        position.y;
+    }
+  );
+
+
+  element.addEventListener(
+    "pointerup",
+    async () => {
+
+      if (!dragging) {
+        return;
+      }
+
+      dragging =
+        false;
+
+
+      const painting =
+        currentPaintings[id];
+
+      if (!painting) {
+        return;
+      }
+
+
+      await set(
+        ref(
+          db,
+          "paintings/" +
+          id
+        ),
+        {
+          ...painting
+        }
+      );
+    }
+  );
+}
+
+
+/* =========================================================
+   CHAT
+========================================================= */
+
+function startChat() {
+
+  const chatPanel =
+    document.getElementById(
+      "chatPanel"
+    );
+
+
+  document.getElementById(
+    "chatButton"
+  ).onclick = () => {
+
+    chatPanel.style.display =
+      chatPanel.style.display ===
+      "flex"
+        ? "none"
+        : "flex";
+  };
+
+
+  document.getElementById(
+    "sendChat"
+  ).onclick =
+    sendMessage;
+
+
+  document.getElementById(
+    "chatInput"
+  ).addEventListener(
+    "keydown",
+    event => {
+
+      if (
+        event.key ===
+        "Enter"
+      ) {
+
+        sendMessage();
+      }
+    }
+  );
+
+
+  onValue(
+    ref(db, "messages"),
+    snapshot => {
+
+      const data =
+        snapshot.val() || {};
+
+
+      const list =
+        Object.values(data)
+          .sort(
+            (a,b) =>
+              (a.time || 0) -
+              (b.time || 0)
+          )
+          .slice(-100);
+
+
+      const messages =
+        document.getElementById(
+          "messages"
+        );
+
+
+      messages.innerHTML =
+        "";
+
+
+      for (
+        const message
+        of list
+      ) {
+
+        const wrapper =
+          document.createElement(
+            "div"
+          );
+
+        wrapper.className =
+          "message";
+
+
+        const name =
+          document.createElement(
+            "div"
+          );
+
+        name.className =
+          "message-name";
+
+        name.textContent =
+          message.name;
+
+        name.style.color =
+          message.color;
+
+
+        const text =
+          document.createElement(
+            "div"
+          );
+
+        text.className =
+          "message-text";
+
+        text.textContent =
+          message.text;
+
+
+        wrapper.appendChild(
+          name
+        );
+
+        wrapper.appendChild(
+          text
+        );
+
+        messages.appendChild(
+          wrapper
+        );
+      }
+
+
+      messages.scrollTop =
+        messages.scrollHeight;
+    }
+  );
+}
+
+
+async function sendMessage() {
+
+  const input =
+    document.getElementById(
+      "chatInput"
+    );
+
+
+  const text =
+    input.value.trim();
+
+
+  if (!text) {
+    return;
+  }
+
+
+  await set(
+    push(
+      ref(db, "messages")
+    ),
+    {
+
+      name:
+        currentUserName,
+
+      color:
+        currentUserColor,
+
+      text:
+        text,
+
+      time:
+        Date.now()
+    }
+  );
+
+
+  input.value =
+    "";
+
+  input.focus();
+}
 
 </script>
 
