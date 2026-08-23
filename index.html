@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Shared Cursor Demo</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Shared Cursors</title>
 
   <style>
     html, body {
@@ -11,229 +11,230 @@
       width: 100%;
       height: 100%;
       overflow: hidden;
-      font-family: Arial, sans-serif;
       background: #111;
-      color: white;
+      font-family: Arial, sans-serif;
     }
 
-    #info {
+    #status {
       position: fixed;
       top: 15px;
       left: 15px;
-      z-index: 99999;
+      z-index: 100000;
       padding: 10px 14px;
       border-radius: 10px;
-      background: rgba(0, 0, 0, 0.65);
-      pointer-events: none;
+      background: rgba(0,0,0,.75);
+      color: white;
+      font-size: 14px;
     }
 
-    .remote-cursor {
+    .cursor {
       position: fixed;
-      z-index: 99998;
+      z-index: 99999;
       pointer-events: none;
-      transform: translate(-2px, -2px);
-      transition: left 40ms linear, top 40ms linear;
+      left: 0;
+      top: 0;
+      transition: left .04s linear, top .04s linear;
     }
 
-    .cursor-arrow {
+    .arrow {
       width: 0;
       height: 0;
-      border-top: 10px solid transparent;
-      border-bottom: 10px solid transparent;
-      border-left: 16px solid var(--cursor-color);
+      border-top: 9px solid transparent;
+      border-bottom: 9px solid transparent;
+      border-left: 15px solid var(--color);
       transform: rotate(-45deg);
-      filter: drop-shadow(0 1px 2px black);
+      filter: drop-shadow(1px 2px 2px #000);
     }
 
-    .cursor-label {
+    .name {
       position: absolute;
+      left: 10px;
       top: 12px;
-      left: 12px;
+      background: var(--color);
+      color: white;
       padding: 3px 7px;
       border-radius: 5px;
-      background: var(--cursor-color);
-      color: white;
       font-size: 12px;
       white-space: nowrap;
-      box-shadow: 0 2px 5px rgba(0,0,0,.4);
     }
   </style>
 </head>
 
 <body>
 
-<div id="info">
-  Move your mouse around — everyone on this website can see it.
-</div>
+<div id="status">Connecting...</div>
 
-<!-- Firebase -->
 <script type="module">
 
-  import { initializeApp } from
-    "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
+import { initializeApp }
+  from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
 
-  import {
-    getDatabase,
-    ref,
-    set,
-    onValue,
-    onDisconnect
-  } from
-    "https://www.gstatic.com/firebasejs/12.1.0/firebase-database.js";
+import {
+  getDatabase,
+  ref,
+  set,
+  onValue,
+  onDisconnect
+} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-database.js";
 
-  /*
-    ==========================================================
-    PUT YOUR FIREBASE CONFIG HERE
-    ==========================================================
-  */
 
-  const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_PROJECT.firebaseapp.com",
-    databaseURL: "https://YOUR_PROJECT-default-rtdb.firebaseio.com",
-    projectId: "YOUR_PROJECT",
-    storageBucket: "YOUR_PROJECT.firebasestorage.app",
-    messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-    appId: "YOUR_APP_ID"
-  };
+/* ================================
+   FIREBASE
+================================ */
 
-  const app = initializeApp(firebaseConfig);
-  const db = getDatabase(app);
+const firebaseConfig = {
+  apiKey: "AIzaSyAdNB_wjlrAgC3wfIO25Hz-DtDDpvYOQcU",
+  authDomain: "curster-2fee2.firebaseapp.com",
+  databaseURL: "https://curster-2fee2-default-rtdb.firebaseio.com",
+  projectId: "curster-2fee2",
+  storageBucket: "curster-2fee2.firebasestorage.app",
+  messagingSenderId: "129479890927",
+  appId: "1:129479890927:web:ca86b8b7e9aa08b3ab881a"
+};
 
-  /*
-    ==========================================================
-    CREATE A RANDOM ID FOR THIS VISITOR
-    ==========================================================
-  */
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
 
-  const userId =
-    crypto.randomUUID();
 
-  const colors = [
-    "#ff3b30",
-    "#007aff",
-    "#34c759",
-    "#af52de",
-    "#ff9500",
-    "#00c7be",
-    "#ff2d55",
-    "#5856d6"
-  ];
+/* ================================
+   THIS USER
+================================ */
 
-  const myColor =
-    colors[Math.floor(Math.random() * colors.length)];
+const id = crypto.randomUUID();
 
-  const myName =
-    "User " + Math.floor(Math.random() * 9999);
+const colors = [
+  "#ff3b30",
+  "#007aff",
+  "#34c759",
+  "#af52de",
+  "#ff9500",
+  "#00c7be",
+  "#ff2d55",
+  "#5856d6"
+];
 
-  const myRef =
-    ref(db, "cursors/" + userId);
+const color =
+  colors[Math.floor(Math.random() * colors.length)];
 
-  /*
-    ==========================================================
-    REMOVE OUR CURSOR WHEN WE LEAVE
-    ==========================================================
-  */
+const name =
+  "User " + Math.floor(Math.random() * 10000);
 
-  onDisconnect(myRef).remove();
+const myRef = ref(db, "cursors/" + id);
 
-  /*
-    ==========================================================
-    SEND MOUSE POSITION
-    ==========================================================
-  */
 
-  let lastSent = 0;
+/* ================================
+   CONNECTION STATUS
+================================ */
 
-  document.addEventListener("mousemove", (event) => {
+const connectedRef = ref(db, ".info/connected");
 
-    const now = performance.now();
+onValue(connectedRef, snapshot => {
 
-    // Limit updates to about 30 per second
-    if (now - lastSent < 33) return;
+  const status = document.getElementById("status");
 
-    lastSent = now;
+  if (snapshot.val() === true) {
+    status.textContent = "🟢 Connected";
+  } else {
+    status.textContent = "🔴 Disconnected";
+  }
 
-    set(myRef, {
-      x: event.clientX,
-      y: event.clientY,
-      name: myName,
-      color: myColor,
-      updated: Date.now()
-    });
+});
 
+
+/* ================================
+   DELETE WHEN LEAVING
+================================ */
+
+onDisconnect(myRef).remove();
+
+
+/* ================================
+   SEND CURSOR
+================================ */
+
+let lastUpdate = 0;
+
+document.addEventListener("mousemove", event => {
+
+  const now = performance.now();
+
+  if (now - lastUpdate < 30) return;
+
+  lastUpdate = now;
+
+  set(myRef, {
+    x: event.clientX,
+    y: event.clientY,
+    name: name,
+    color: color
   });
 
-  /*
-    ==========================================================
-    RECEIVE EVERYONE ELSE'S CURSORS
-    ==========================================================
-  */
+});
 
-  const cursorsRef =
-    ref(db, "cursors");
 
-  const cursorElements = new Map();
+/* ================================
+   RECEIVE EVERYONE
+================================ */
 
-  onValue(cursorsRef, (snapshot) => {
+const allCursors = ref(db, "cursors");
 
-    const users = snapshot.val() || {};
+const elements = new Map();
 
-    /*
-      Create/update cursors
-    */
+onValue(allCursors, snapshot => {
 
-    for (const id in users) {
+  const users = snapshot.val() || {};
 
-      if (id === userId) continue;
+  for (const userId in users) {
 
-      const user = users[id];
+    if (userId === id) continue;
 
-      let cursor = cursorElements.get(id);
+    const user = users[userId];
 
-      if (!cursor) {
+    let cursor = elements.get(userId);
 
-        cursor = document.createElement("div");
+    if (!cursor) {
 
-        cursor.className = "remote-cursor";
+      cursor = document.createElement("div");
 
-        cursor.innerHTML = `
-          <div class="cursor-arrow"></div>
-          <div class="cursor-label"></div>
-        `;
+      cursor.className = "cursor";
 
-        document.body.appendChild(cursor);
+      cursor.innerHTML = `
+        <div class="arrow"></div>
+        <div class="name"></div>
+      `;
 
-        cursorElements.set(id, cursor);
-      }
+      document.body.appendChild(cursor);
 
-      cursor.style.left = user.x + "px";
-      cursor.style.top = user.y + "px";
-
-      cursor.style.setProperty(
-        "--cursor-color",
-        user.color
-      );
-
-      cursor.querySelector(".cursor-label").textContent =
-        user.name;
+      elements.set(userId, cursor);
     }
 
-    /*
-      Remove cursors belonging to users who left
-    */
+    cursor.style.left = user.x + "px";
+    cursor.style.top = user.y + "px";
 
-    for (const [id, element] of cursorElements) {
+    cursor.style.setProperty(
+      "--color",
+      user.color
+    );
 
-      if (!users[id]) {
+    cursor.querySelector(".name").textContent =
+      user.name;
+  }
 
-        element.remove();
-        cursorElements.delete(id);
 
-      }
+  /* Remove people who left */
+
+  for (const [userId, element] of elements) {
+
+    if (!users[userId]) {
+
+      element.remove();
+      elements.delete(userId);
+
     }
 
-  });
+  }
+
+});
 
 </script>
 
