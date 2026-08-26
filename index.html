@@ -267,57 +267,22 @@ button {
 
 /* =========================================================
    JELLY
+   Rendered on canvas as a soft-body ring of points, so the
+   shape here is just a positioned, shadowed canvas element —
+   the actual blob shape is drawn every frame in JS.
 ========================================================= */
 
-.jelly {
+.jelly-canvas {
   position: fixed;
-  width: 55px;
-  height: 48px;
   z-index: 60000;
-  border-radius: 45% 55% 50% 50% / 50% 45% 55% 50%;
-  background:
-    radial-gradient(
-      circle at 35% 25%,
-      rgba(255,255,255,.75),
-      transparent 20%
-    ),
-    radial-gradient(
-      circle at 65% 65%,
-      rgba(255,255,255,.12),
-      transparent 35%
-    ),
-    linear-gradient(
-      145deg,
-      #e887ff,
-      #9d43ed
-    );
-  box-shadow:
-    inset -5px -7px 10px rgba(74,0,120,.28),
-    inset 5px 4px 9px rgba(255,255,255,.35),
-    0 5px 12px rgba(0,0,0,.4);
-  transform-origin: center;
-  user-select: none;
-  touch-action: none;
   cursor: grab;
-  transition:
-    transform .08s ease-out,
-    border-radius .08s ease-out;
+  touch-action: none;
+  user-select: none;
+  filter: drop-shadow(0 6px 14px rgba(0,0,0,.4));
 }
 
-.jelly:active {
+.jelly-canvas:active {
   cursor: grabbing;
-}
-
-.jelly::after {
-  content: "";
-  position: absolute;
-  left: 16%;
-  top: 12%;
-  width: 23%;
-  height: 13%;
-  border-radius: 50%;
-  background: rgba(255,255,255,.55);
-  transform: rotate(-20deg);
 }
 
 /* =========================================================
@@ -787,12 +752,6 @@ function startCursorSystem() {
           color: currentUserColor,
           lastSeen: now
         }
-      );
-
-
-      applyJellyPressure(
-        event.clientX,
-        event.clientY
       );
     }
   );
@@ -1955,426 +1914,301 @@ async () => {
 
 
 /* =========================================================
-   JELLY SYSTEM
+   JELLY SYSTEM — soft-body "liquid jelly" physics
+
+   Each jelly is a ring of points anchored to an invisible
+   center by springs. The cursor dents whichever points it
+   gets close to; a neighbor-pull pass spreads that dent
+   across the surface like liquid instead of letting each
+   point move independently and spike. The whole ring is
+   re-drawn on canvas every frame as a smooth closed curve.
 ========================================================= */
 
 const JELLY_W = 55;
 const JELLY_H = 48;
 
+const JELLY_POINTS = 12;    // points forming the blob's outline
+const REST_RX = 27;         // resting radius (x) around the center
+const REST_RY = 23;         // resting radius (y) around the center
+const CANVAS_W = 170;       // extra room so the blob can bulge outward
+const CANVAS_H = 150;
+
+const SPRING_K = 0.22;      // how hard a point springs back to rest
+const DAMPING = 0.78;       // velocity damping per frame (jiggle decay)
+const NEIGHBOR_PULL = 0.12; // pulls a point toward its neighbors' midpoint
+const CURSOR_RADIUS = 50;   // how far the cursor reaches into the jelly
+const CURSOR_PUSH = 16;     // strength of the cursor's local dent
+const CENTER_NUDGE = 0.18;  // how much a big dent nudges the whole blob
+
 let currentJellies = {};
+const jellyElements = new Map(); // id -> <canvas>
+const softBodies = new Map();    // id -> { points: [{ox,oy,x,y,vx,vy}] }
+let jellyLoopStarted = false;
+let draggingJellyId = null;
 
-const jellyElements =
-  new Map();
 
-const localJellyState =
-  new Map();
+function createSoftBody(centerX, centerY) {
+
+  const points = [];
+
+  for (let i = 0; i < JELLY_POINTS; i++) {
+
+    const angle = (i / JELLY_POINTS) * Math.PI * 2;
+    const ox = Math.cos(angle) * REST_RX;
+    const oy = Math.sin(angle) * REST_RY;
+
+    points.push({
+      ox,
+      oy,
+      x: centerX + ox,
+      y: centerY + oy,
+      vx: 0,
+      vy: 0
+    });
+  }
+
+  return { points };
+}
 
 
 function startJellySystem() {
 
-  onValue(
-    ref(db, "jellies"),
-    snapshot => {
+  onValue(ref(db, "jellies"), snapshot => {
 
-      currentJellies =
-        snapshot.val() || {};
+    currentJellies = snapshot.val() || {};
 
+    for (const id in currentJellies) {
 
-      for (
-        const id in currentJellies
-      ) {
+      const jelly = currentJellies[id];
+      let canvas = jellyElements.get(id);
 
-        const jelly =
-          currentJellies[id];
+      if (!canvas) {
 
+        canvas = document.createElement("canvas");
+        canvas.className = "jelly-canvas";
+        canvas.width = CANVAS_W;
+        canvas.height = CANVAS_H;
 
-        let element =
-          jellyElements.get(id);
+        document.body.appendChild(canvas);
+        jellyElements.set(id, canvas);
 
-
-        if (!element) {
-
-          element =
-            document.createElement(
-              "div"
-            );
-
-          element.className =
-            "jelly";
-
-          document.body.appendChild(
-            element
-          );
-
-          jellyElements.set(
-            id,
-            element
-          );
-
-
-          setupJellyDrag(
-            element,
-            id
-          );
-        }
-
-
-        element.style.left =
-          jelly.x + "px";
-
-        element.style.top =
-          jelly.y + "px";
-
-
-        applyJellyShape(
-          element,
-          jelly.pressure || 0,
-          jelly.pressureAngle || 0
-        );
-      }
-
-
-      for (
-        const [
+        softBodies.set(
           id,
-          element
-        ]
-        of jellyElements
-      ) {
+          createSoftBody(
+            jelly.x + JELLY_W / 2,
+            jelly.y + JELLY_H / 2
+          )
+        );
 
-        if (
-          !currentJellies[id]
-        ) {
-
-          element.remove();
-
-          jellyElements.delete(id);
-        }
+        setupJellyDrag(canvas, id);
       }
     }
-  );
 
+    for (const [id, canvas] of jellyElements) {
 
-  document.getElementById(
-    "jellyButton"
-  ).onclick =
-    spawnJelly;
+      if (!currentJellies[id]) {
+
+        canvas.remove();
+        jellyElements.delete(id);
+        softBodies.delete(id);
+        activeThrows.delete(id);
+      }
+    }
+
+    if (!jellyLoopStarted) {
+
+      jellyLoopStarted = true;
+      requestAnimationFrame(jellyLoop);
+    }
+  });
+
+  document.getElementById("jellyButton").onclick = spawnJelly;
 }
 
 
 function spawnJelly() {
 
-  const id =
-    push(
-      ref(db, "jellies")
-    ).key;
+  const id = push(ref(db, "jellies")).key;
 
+  const x = Math.max(5, Math.min(lastMouseX - 25, window.innerWidth - JELLY_W - 5));
+  const y = Math.max(5, Math.min(lastMouseY - 22, window.innerHeight - JELLY_H - 5));
 
-  const x =
-    Math.max(
-      5,
-      Math.min(
-        lastMouseX - 25,
-        window.innerWidth -
-        JELLY_W -
-        5
-      )
-    );
-
-
-  const y =
-    Math.max(
-      5,
-      Math.min(
-        lastMouseY - 22,
-        window.innerHeight -
-        JELLY_H -
-        5
-      )
-    );
-
-
-  set(
-    ref(
-      db,
-      "jellies/" +
-      id
-    ),
-    {
-
-      owner:
-        currentUserId,
-
-      x,
-      y,
-
-      vx: 0,
-      vy: 0,
-
-      pressure: 0,
-
-      pressureAngle: 0,
-
-      created:
-        Date.now()
-    }
-  );
+  set(ref(db, "jellies/" + id), {
+    owner: currentUserId,
+    x,
+    y,
+    vx: 0,
+    vy: 0,
+    created: Date.now()
+  });
 }
 
 
 /* =========================================================
-   JELLY PRESSURE
+   SOFT-BODY PHYSICS LOOP
+   Runs continuously, for every jelly, on every client — this
+   is what makes the squish real physics instead of a canned
+   animation: it reacts to wherever your cursor actually is.
 ========================================================= */
 
-function applyJellyPressure(
-  cursorX,
-  cursorY
-) {
+function jellyLoop() {
 
-  for (
-    const [
-      id,
-      jelly
-    ]
-    of Object.entries(
-      currentJellies
-    )
-  ) {
+  for (const id in currentJellies) {
 
-    const centerX =
-      jelly.x +
-      JELLY_W / 2;
+    const jelly = currentJellies[id];
+    const soft = softBodies.get(id);
 
-    const centerY =
-      jelly.y +
-      JELLY_H / 2;
+    if (!jelly || !soft) {
+      continue;
+    }
 
+    const centerX = jelly.x + JELLY_W / 2;
+    const centerY = jelly.y + JELLY_H / 2;
 
-    const dx =
-      cursorX -
-      centerX;
+    let pushX = 0;
+    let pushY = 0;
 
-    const dy =
-      cursorY -
-      centerY;
+    for (const p of soft.points) {
 
+      const restX = centerX + p.ox;
+      const restY = centerY + p.oy;
 
-    /*
-      Elliptical distance gives
-      the jelly a softer contact
-      area.
-    */
+      let ax = (restX - p.x) * SPRING_K;
+      let ay = (restY - p.y) * SPRING_K;
 
-    const distance =
-      Math.sqrt(
-        (dx * dx) +
-        (dy * dy)
-      );
+      const dx = p.x - lastMouseX;
+      const dy = p.y - lastMouseY;
+      const dist = Math.sqrt(dx * dx + dy * dy) || 0.0001;
 
+      if (dist < CURSOR_RADIUS) {
 
-    const contactRadius =
-      38;
+        const force = (CURSOR_RADIUS - dist) / CURSOR_RADIUS;
 
+        ax += (dx / dist) * force * CURSOR_PUSH;
+        ay += (dy / dist) * force * CURSOR_PUSH;
 
-    if (
-      distance <
-      contactRadius
-    ) {
-
-      /*
-        0 = barely touching
-        1 = deeply compressed
-      */
-
-      const pressure =
-        Math.min(
-          1,
-          Math.max(
-            0,
-            (
-              contactRadius -
-              distance
-            ) /
-            contactRadius
-          )
-        );
-
-
-      const angle =
-        Math.atan2(
-          dy,
-          dx
-        );
-
-
-      const element =
-        jellyElements.get(id);
-
-
-      if (element) {
-
-        applyJellyShape(
-          element,
-          pressure,
-          angle
-        );
+        pushX += (dx / dist) * force;
+        pushY += (dy / dist) * force;
       }
 
+      p.vx = (p.vx + ax) * DAMPING;
+      p.vy = (p.vy + ay) * DAMPING;
 
-      /*
-        The important part:
+      p.x += p.vx;
+      p.y += p.vy;
+    }
 
-        The cursor isn't given a
-        fixed knockback.
+    // Neighbor pull — spreads a dent across the surface like
+    // liquid instead of each point moving independently.
+    const n = soft.points.length;
+    const next = soft.points.map((p, i) => {
 
-        Resistance increases with
-        compression.
-      */
+      const a = soft.points[(i - 1 + n) % n];
+      const b = soft.points[(i + 1) % n];
 
-      const resistance =
-        pressure *
-        pressure *
-        1.8;
+      return {
+        x: p.x + ((a.x + b.x) / 2 - p.x) * NEIGHBOR_PULL,
+        y: p.y + ((a.y + b.y) / 2 - p.y) * NEIGHBOR_PULL
+      };
+    });
 
+    soft.points.forEach((p, i) => {
+      p.x = next[i].x;
+      p.y = next[i].y;
+    });
 
-      /*
-        Move the local cursor's
-        visual position slightly
-        opposite the compression.
-      */
+    renderJelly(id, centerX, centerY, soft.points);
 
-      if (
-        id !== draggingJellyId
-      ) {
+    // A firm poke nudges the whole blob, like bumping a cup of jelly.
+    if ((pushX || pushY) && id !== draggingJellyId) {
 
-        const pushX =
-          Math.cos(angle) *
-          resistance;
+      jelly.vx = (jelly.vx || 0) - pushX * CENTER_NUDGE;
+      jelly.vy = (jelly.vy || 0) - pushY * CENTER_NUDGE;
 
-        const pushY =
-          Math.sin(angle) *
-          resistance;
-
-
-        /*
-          This does not teleport
-          the actual mouse. It gives
-          the jelly a visual deformation
-          and can influence its physics.
-        */
-
-        applyJellyForce(
-          id,
-          -pushX,
-          -pushY,
-          pressure
-        );
-      }
-
-    } else {
-
-      const element =
-        jellyElements.get(id);
-
-      if (element) {
-
-        applyJellyShape(
-          element,
-          0,
-          0
-        );
+      if (!activeThrows.has(id)) {
+        animateThrownJelly(id);
       }
     }
   }
+
+  requestAnimationFrame(jellyLoop);
 }
 
 
-function applyJellyShape(
-  element,
-  pressure,
-  angle
-) {
+function renderJelly(id, centerX, centerY, points) {
 
-  const amount =
-    Math.min(
-      1,
-      Math.max(
-        0,
-        pressure
-      )
-    );
+  const canvas = jellyElements.get(id);
 
-
-  /*
-    Squash in the direction
-    being pressed.
-
-    Perpendicular direction
-    bulges outward.
-  */
-
-  const compression =
-    1 -
-    amount *
-    0.38;
-
-
-  const expansion =
-    1 +
-    amount *
-    0.22;
-
-
-  const rotate =
-    angle *
-    180 /
-    Math.PI;
-
-
-  element.style.transform =
-    `rotate(${rotate * .08}deg)
-     scaleX(${compression})
-     scaleY(${expansion})`;
-
-
-  element.style.borderRadius =
-    `${45 + amount * 18}%
-     ${55 - amount * 20}%
-     ${50 + amount * 20}%
-     ${50 - amount * 18}%`;
-}
-
-
-function applyJellyForce(
-  id,
-  fx,
-  fy,
-  pressure
-) {
-
-  const jelly =
-    currentJellies[id];
-
-  if (!jelly) {
+  if (!canvas) {
     return;
   }
 
+  canvas.style.left = (centerX - CANVAS_W / 2) + "px";
+  canvas.style.top = (centerY - CANVAS_H / 2) + "px";
 
-  /*
-    Soft force. This is deliberately
-    small so the cursor isn't
-    violently thrown away.
-  */
+  const ctx = canvas.getContext("2d");
+  ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
 
-  jelly.vx =
-    (jelly.vx || 0) +
-    fx *
-    pressure;
+  const local = points.map(p => ({
+    x: p.x - centerX + CANVAS_W / 2,
+    y: p.y - centerY + CANVAS_H / 2
+  }));
 
-  jelly.vy =
-    (jelly.vy || 0) +
-    fy *
-    pressure;
+  const n = local.length;
+
+  ctx.beginPath();
+
+  for (let i = 0; i < n; i++) {
+
+    const p0 = local[(i - 1 + n) % n];
+    const p1 = local[i];
+    const p2 = local[(i + 1) % n];
+    const p3 = local[(i + 2) % n];
+
+    // Catmull-Rom -> Bezier, so the outline is a smooth closed
+    // curve through the points rather than a jagged polygon.
+    const cp1x = p1.x + (p2.x - p0.x) / 6;
+    const cp1y = p1.y + (p2.y - p0.y) / 6;
+    const cp2x = p2.x - (p3.x - p1.x) / 6;
+    const cp2y = p2.y - (p3.y - p1.y) / 6;
+
+    if (i === 0) {
+      ctx.moveTo(p1.x, p1.y);
+    }
+
+    ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, p2.x, p2.y);
+  }
+
+  ctx.closePath();
+
+  const base = ctx.createLinearGradient(0, 0, CANVAS_W, CANVAS_H);
+  base.addColorStop(0, "#e887ff");
+  base.addColorStop(1, "#9d43ed");
+  ctx.fillStyle = base;
+  ctx.fill();
+
+  ctx.save();
+  ctx.clip();
+
+  const highlight = ctx.createRadialGradient(
+    CANVAS_W / 2 - 14, CANVAS_H / 2 - 16, 2,
+    CANVAS_W / 2 - 14, CANVAS_H / 2 - 16, 42
+  );
+  highlight.addColorStop(0, "rgba(255,255,255,.75)");
+  highlight.addColorStop(1, "rgba(255,255,255,0)");
+  ctx.fillStyle = highlight;
+  ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+
+  const shade = ctx.createRadialGradient(
+    CANVAS_W / 2 + 16, CANVAS_H / 2 + 18, 2,
+    CANVAS_W / 2 + 16, CANVAS_H / 2 + 18, 50
+  );
+  shade.addColorStop(0, "rgba(74,0,120,.28)");
+  shade.addColorStop(1, "rgba(74,0,120,0)");
+  ctx.fillStyle = shade;
+  ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+
+  ctx.restore();
 }
 
 
@@ -2382,14 +2216,7 @@ function applyJellyForce(
    JELLY DRAG / THROW
 ========================================================= */
 
-let draggingJellyId =
-  null;
-
-
-function setupJellyDrag(
-  element,
-  id
-) {
+function setupJellyDrag(element, id) {
 
   let dragging = false;
 
@@ -2398,609 +2225,206 @@ function setupJellyDrag(
 
   let previousX = 0;
   let previousY = 0;
-
   let previousTime = 0;
 
+  element.addEventListener("pointerdown", event => {
 
-  element.addEventListener(
-    "pointerdown",
-    event => {
+    const jelly = currentJellies[id];
 
-      const jelly =
-        currentJellies[id];
-
-      if (!jelly) {
-        return;
-      }
-
-
-      dragging = true;
-
-      draggingJellyId =
-        id;
-
-
-      offsetX =
-        event.clientX -
-        jelly.x;
-
-      offsetY =
-        event.clientY -
-        jelly.y;
-
-
-      previousX =
-        event.clientX;
-
-      previousY =
-        event.clientY;
-
-      previousTime =
-        performance.now();
-
-
-      element.setPointerCapture(
-        event.pointerId
-      );
+    if (!jelly) {
+      return;
     }
-  );
 
+    dragging = true;
+    draggingJellyId = id;
 
-  element.addEventListener(
-    "pointermove",
-    event => {
+    offsetX = event.clientX - jelly.x;
+    offsetY = event.clientY - jelly.y;
 
-      if (!dragging) {
-        return;
-      }
+    previousX = event.clientX;
+    previousY = event.clientY;
+    previousTime = performance.now();
 
+    element.setPointerCapture(event.pointerId);
+  });
 
-      const jelly =
-        currentJellies[id];
+  element.addEventListener("pointermove", event => {
 
-      if (!jelly) {
-        return;
-      }
-
-
-      const now =
-        performance.now();
-
-      const dt =
-        Math.max(
-          1,
-          now -
-          previousTime
-        );
-
-
-      const x =
-        Math.max(
-          0,
-          Math.min(
-            event.clientX -
-            offsetX,
-            window.innerWidth -
-            JELLY_W
-          )
-        );
-
-
-      const y =
-        Math.max(
-          0,
-          Math.min(
-            event.clientY -
-            offsetY,
-            window.innerHeight -
-            JELLY_H
-          )
-        );
-
-
-      jelly.x = x;
-      jelly.y = y;
-
-
-      /*
-        Velocity used when the jelly
-        is released.
-      */
-
-      jelly.vx =
-        (
-          event.clientX -
-          previousX
-        ) /
-        dt *
-        18;
-
-
-      jelly.vy =
-        (
-          event.clientY -
-          previousY
-        ) /
-        dt *
-        18;
-
-
-      previousX =
-        event.clientX;
-
-      previousY =
-        event.clientY;
-
-      previousTime =
-        now;
-
-
-      element.style.left =
-        x + "px";
-
-      element.style.top =
-        y + "px";
-
-
-      /*
-        Send the active position.
-      */
-
-      set(
-        ref(
-          db,
-          "jellies/" +
-          id
-        ),
-        {
-          ...jelly,
-          owner:
-            jelly.owner ||
-            currentUserId
-        }
-      );
+    if (!dragging) {
+      return;
     }
-  );
 
+    const jelly = currentJellies[id];
 
-  element.addEventListener(
-    "pointerup",
-    async () => {
-
-      if (!dragging) {
-        return;
-      }
-
-
-      dragging = false;
-
-      draggingJellyId =
-        null;
-
-
-      const jelly =
-        currentJellies[id];
-
-      if (!jelly) {
-        return;
-      }
-
-
-      /*
-        Throw velocity is stored
-        so other browsers receive
-        the throw.
-      */
-
-      await set(
-        ref(
-          db,
-          "jellies/" +
-          id
-        ),
-        {
-          ...jelly
-        }
-      );
-
-
-      animateThrownJelly(
-        id
-      );
+    if (!jelly) {
+      return;
     }
-  );
+
+    const now = performance.now();
+    const dt = Math.max(1, now - previousTime);
+
+    const x = Math.max(0, Math.min(event.clientX - offsetX, window.innerWidth - JELLY_W));
+    const y = Math.max(0, Math.min(event.clientY - offsetY, window.innerHeight - JELLY_H));
+
+    jelly.x = x;
+    jelly.y = y;
+
+    jelly.vx = (event.clientX - previousX) / dt * 18;
+    jelly.vy = (event.clientY - previousY) / dt * 18;
+
+    previousX = event.clientX;
+    previousY = event.clientY;
+    previousTime = now;
+
+    set(ref(db, "jellies/" + id), {
+      ...jelly,
+      owner: jelly.owner || currentUserId
+    });
+  });
+
+  element.addEventListener("pointerup", async () => {
+
+    if (!dragging) {
+      return;
+    }
+
+    dragging = false;
+    draggingJellyId = null;
+
+    const jelly = currentJellies[id];
+
+    if (!jelly) {
+      return;
+    }
+
+    await set(ref(db, "jellies/" + id), { ...jelly });
+
+    animateThrownJelly(id);
+  });
 }
 
 
 /* =========================================================
-   JELLY PHYSICS
+   JELLY PHYSICS (center-of-mass momentum, edges, collisions)
 ========================================================= */
 
-const activeThrows =
-  new Set();
+const activeThrows = new Set();
 
+function animateThrownJelly(id) {
 
-function animateThrownJelly(
-  id
-) {
-
-  if (
-    activeThrows.has(id)
-  ) {
+  if (activeThrows.has(id)) {
     return;
   }
 
-
   activeThrows.add(id);
 
-
-  let last =
-    performance.now();
-
+  let last = performance.now();
 
   function frame(now) {
 
-    const jelly =
-      currentJellies[id];
-
+    const jelly = currentJellies[id];
 
     if (!jelly) {
-
       activeThrows.delete(id);
-
       return;
     }
 
+    const dt = Math.min(40, now - last) / 1000;
+    last = now;
 
-    const dt =
-      Math.min(
-        40,
-        now -
-        last
-      ) /
-      1000;
+    jelly.x += (jelly.vx || 0) * dt;
+    jelly.y += (jelly.vy || 0) * dt;
 
-
-    last =
-      now;
-
-
-    jelly.x +=
-      (jelly.vx || 0) *
-      dt;
-
-    jelly.y +=
-      (jelly.vy || 0) *
-      dt;
-
-
-    /*
-      Bounce off screen edges.
-    */
-
-    if (
-      jelly.x < 0
-    ) {
-
+    if (jelly.x < 0) {
       jelly.x = 0;
-
-      jelly.vx =
-        Math.abs(
-          jelly.vx || 0
-        ) *
-        .72;
+      jelly.vx = Math.abs(jelly.vx || 0) * .72;
     }
 
-
-    if (
-      jelly.x >
-      window.innerWidth -
-      JELLY_W
-    ) {
-
-      jelly.x =
-        window.innerWidth -
-        JELLY_W;
-
-      jelly.vx =
-        -Math.abs(
-          jelly.vx || 0
-        ) *
-        .72;
+    if (jelly.x > window.innerWidth - JELLY_W) {
+      jelly.x = window.innerWidth - JELLY_W;
+      jelly.vx = -Math.abs(jelly.vx || 0) * .72;
     }
 
-
-    if (
-      jelly.y < 0
-    ) {
-
+    if (jelly.y < 0) {
       jelly.y = 0;
-
-      jelly.vy =
-        Math.abs(
-          jelly.vy || 0
-        ) *
-        .72;
+      jelly.vy = Math.abs(jelly.vy || 0) * .72;
     }
 
-
-    if (
-      jelly.y >
-      window.innerHeight -
-      JELLY_H
-    ) {
-
-      jelly.y =
-        window.innerHeight -
-        JELLY_H;
-
-      jelly.vy =
-        -Math.abs(
-          jelly.vy || 0
-        ) *
-        .72;
+    if (jelly.y > window.innerHeight - JELLY_H) {
+      jelly.y = window.innerHeight - JELLY_H;
+      jelly.vy = -Math.abs(jelly.vy || 0) * .72;
     }
 
+    jelly.vx *= Math.pow(.18, dt);
+    jelly.vy *= Math.pow(.18, dt);
 
-    /*
-      Air resistance.
-    */
+    resolveJellyCollisions(id);
 
-    jelly.vx *=
-      Math.pow(
-        .18,
-        dt
-      );
-
-    jelly.vy *=
-      Math.pow(
-        .18,
-        dt
-      );
-
-
-    /*
-      Jelly-to-jelly collision.
-      They can stack rather than
-      simply passing through each
-      other.
-    */
-
-    resolveJellyCollisions(
-      id
-    );
-
-
-    const element =
-      jellyElements.get(id);
-
-
-    if (element) {
-
-      element.style.left =
-        jelly.x + "px";
-
-      element.style.top =
-        jelly.y + "px";
-
-
-      const speed =
-        Math.sqrt(
-          jelly.vx *
-          jelly.vx +
-          jelly.vy *
-          jelly.vy
-        );
-
-
-      const wobble =
-        Math.min(
-          1,
-          speed / 12
-        );
-
-
-      element.style.transform =
-        `scaleX(${1 +
-          wobble * .12})
-         scaleY(${1 -
-          wobble * .08})
-         rotate(${jelly.vx * .7}deg)`;
-    }
-
-
-    if (
-      Math.abs(jelly.vx) <
-      .03 &&
-      Math.abs(jelly.vy) <
-      .03
-    ) {
+    if (Math.abs(jelly.vx) < .03 && Math.abs(jelly.vy) < .03) {
 
       jelly.vx = 0;
       jelly.vy = 0;
 
-      set(
-        ref(
-          db,
-          "jellies/" +
-          id
-        ),
-        {
-          ...jelly
-        }
-      );
-
+      set(ref(db, "jellies/" + id), { ...jelly });
 
       activeThrows.delete(id);
-
       return;
     }
 
-
-    requestAnimationFrame(
-      frame
-    );
+    requestAnimationFrame(frame);
   }
 
-
-  requestAnimationFrame(
-    frame
-  );
+  requestAnimationFrame(frame);
 }
 
 
 /* =========================================================
-   JELLY COLLISIONS
+   JELLY COLLISIONS (center to center, so blobs bump apart)
 ========================================================= */
 
-function resolveJellyCollisions(
-  movingId
-) {
+function resolveJellyCollisions(movingId) {
 
-  const moving =
-    currentJellies[
-      movingId
-    ];
-
+  const moving = currentJellies[movingId];
 
   if (!moving) {
     return;
   }
 
+  for (const [id, other] of Object.entries(currentJellies)) {
 
-  for (
-    const [
-      id,
-      other
-    ]
-    of Object.entries(
-      currentJellies
-    )
-  ) {
-
-    if (
-      id === movingId
-    ) {
+    if (id === movingId) {
       continue;
     }
 
+    const dx = (moving.x + JELLY_W / 2) - (other.x + JELLY_W / 2);
+    const dy = (moving.y + JELLY_H / 2) - (other.y + JELLY_H / 2);
 
-    const dx =
-      (
-        moving.x +
-        JELLY_W / 2
-      ) -
-      (
-        other.x +
-        JELLY_W / 2
-      );
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    const minimum = 44;
 
+    if (distance > 0 && distance < minimum) {
 
-    const dy =
-      (
-        moving.y +
-        JELLY_H / 2
-      ) -
-      (
-        other.y +
-        JELLY_H / 2
-      );
+      const nx = dx / distance;
+      const ny = dy / distance;
+      const overlapAmount = minimum - distance;
 
-
-    const distance =
-      Math.sqrt(
-        dx * dx +
-        dy * dy
-      );
-
-
-    const minimum =
-      44;
-
-
-    if (
-      distance > 0 &&
-      distance < minimum
-    ) {
-
-      const nx =
-        dx / distance;
-
-      const ny =
-        dy / distance;
-
-      const overlapAmount =
-        minimum -
-        distance;
-
-
-      /*
-        Small separation so they
-        can settle against each
-        other and stack.
-      */
-
-      moving.x +=
-        nx *
-        overlapAmount *
-        .35;
-
-      moving.y +=
-        ny *
-        overlapAmount *
-        .35;
-
+      moving.x += nx * overlapAmount * .35;
+      moving.y += ny * overlapAmount * .35;
 
       const relativeVelocity =
-        (
-          (moving.vx || 0) -
-          (other.vx || 0)
-        ) *
-        nx +
-        (
-          (moving.vy || 0) -
-          (other.vy || 0)
-        ) *
-        ny;
+        ((moving.vx || 0) - (other.vx || 0)) * nx +
+        ((moving.vy || 0) - (other.vy || 0)) * ny;
 
+      if (relativeVelocity < 0) {
 
-      if (
-        relativeVelocity < 0
-      ) {
+        const impulse = -relativeVelocity * .55;
 
-        const impulse =
-          -relativeVelocity *
-          .55;
-
-
-        moving.vx +=
-          nx *
-          impulse;
-
-        moving.vy +=
-          ny *
-          impulse;
+        moving.vx += nx * impulse;
+        moving.vy += ny * impulse;
       }
     }
   }
 }
-
-
-/* =========================================================
-   INITIALIZE LAST MOUSE
-========================================================= */
-
-document.addEventListener(
-  "mousemove",
-  event => {
-
-    lastMouseX =
-      event.clientX;
-
-    lastMouseY =
-      event.clientY;
-  }
-);
 
 
 /* =========================================================
