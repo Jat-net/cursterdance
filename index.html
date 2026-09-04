@@ -180,7 +180,6 @@ button {
   white-space: nowrap;
 }
 
-
 #noteModal {
   position: fixed;
   inset: 0;
@@ -301,7 +300,6 @@ import {
   "https://www.gstatic.com/firebasejs/12.1.0/firebase-database.js";
 
 const firebaseConfig = {
-
   apiKey:
     "AIzaSyAdNB_wjlrAgC3wfIO25Hz-DtDDpvYOQcU",
 
@@ -362,6 +360,7 @@ function saveName() {
 }
 
 document.getElementById("saveName").onclick = saveName;
+
 nameInput.addEventListener("keydown", e => {
   if (e.key === "Enter") {
     saveName();
@@ -377,11 +376,13 @@ document.querySelectorAll(".colorChoice").forEach(button => {
     });
   };
 });
+
 document.getElementById("yellow").click();
 
 function clampPosition(x, y) {
   const w = 190;
   const h = 155;
+
   return {
     x: Math.max(8, Math.min(x, window.innerWidth - w - 8)),
     y: Math.max(80, Math.min(y, window.innerHeight - h - 8))
@@ -413,6 +414,7 @@ function findPosition() {
 
 function createNoteElement(id, note) {
   const el = document.createElement("div");
+
   el.className = "note " + (note.color || "yellow");
   el.style.setProperty("--rotation", (note.rotation || 0) + "deg");
 
@@ -429,18 +431,11 @@ function createNoteElement(id, note) {
     el.classList.add("mine");
   }
 
-  el.querySelector(".deleteNote").onclick = async event => {
-    event.stopPropagation();
-
-    const current = notes[id];
-    if (current && current.owner === sessionId) {
-      await remove(ref(db, "bulletinNotes/" + id));
-    }
-  };
-
   setupDrag(el, id);
+
   document.body.appendChild(el);
   noteElements.set(id, el);
+
   return el;
 }
 
@@ -452,17 +447,30 @@ function renderNotes() {
     const note = notes[id];
     let el = noteElements.get(id);
 
-    if (!el) el = createNoteElement(id, note);
+    if (!el) {
+      el = createNoteElement(id, note);
+    }
 
     el.style.left = note.x + "px";
     el.style.top = note.y + "px";
     el.style.setProperty("--rotation", (note.rotation || 0) + "deg");
 
-    const nameEl = el.querySelector(".noteName");
-    nameEl.textContent = "— " + (note.name || "Guest");
+    el.className = "note " + (note.color || "yellow");
 
-    if (note.owner === sessionId) el.classList.add("mine");
-    else el.classList.remove("mine");
+    if (note.owner === sessionId) {
+      el.classList.add("mine");
+    }
+
+    const textEl = el.querySelector(".noteText");
+    const nameEl = el.querySelector(".noteName");
+
+    if (textEl) {
+      textEl.textContent = note.text || "";
+    }
+
+    if (nameEl) {
+      nameEl.textContent = "— " + (note.name || "Guest");
+    }
   }
 
   for (const [id, el] of noteElements) {
@@ -511,12 +519,18 @@ function setupDrag(el, id) {
 
   el.addEventListener("pointerup", async () => {
     if (!dragging) return;
+
     dragging = false;
 
     const note = notes[id];
     if (!note) return;
 
-    await set(ref(db, "bulletinNotes/" + id), { ...note });
+    try {
+      await set(ref(db, "bulletinNotes/" + id), { ...note });
+    } catch (error) {
+      console.error("Failed to save note position:", error);
+      status.textContent = "🔴 Failed to save";
+    }
   });
 
   el.addEventListener("pointercancel", () => {
@@ -533,11 +547,15 @@ onValue(ref(db, ".info/connected"), snapshot => {
 onValue(ref(db, "bulletinNotes"), snapshot => {
   notes = snapshot.val() || {};
   renderNotes();
+}, error => {
+  console.error("Failed to read bulletin notes:", error);
+  status.textContent = "🔴 Database error";
 });
 
 document.getElementById("newNote").onclick = () => {
   noteTextInput.value = "";
   modal.style.display = "flex";
+
   setTimeout(() => noteTextInput.focus(), 30);
 };
 
@@ -546,11 +564,14 @@ document.getElementById("cancelNote").onclick = () => {
 };
 
 modal.addEventListener("pointerdown", event => {
-  if (event.target === modal) modal.style.display = "none";
+  if (event.target === modal) {
+    modal.style.display = "none";
+  }
 });
 
 document.getElementById("postNote").onclick = async () => {
   const text = noteTextInput.value.trim();
+
   if (!text) {
     noteTextInput.focus();
     return;
@@ -559,7 +580,12 @@ document.getElementById("postNote").onclick = async () => {
   const position = findPosition();
   const id = push(ref(db, "bulletinNotes")).key;
 
-  await set(ref(db, "bulletinNotes/" + id), {
+  if (!id) {
+    status.textContent = "🔴 Could not create note";
+    return;
+  }
+
+  const note = {
     owner: sessionId,
     name: currentName,
     text: text.slice(0, 500),
@@ -568,9 +594,15 @@ document.getElementById("postNote").onclick = async () => {
     y: position.y,
     rotation: Math.round((Math.random() * 6 - 3) * 10) / 10,
     created: Date.now()
-  });
+  };
 
-  modal.style.display = "none";
+  try {
+    await set(ref(db, "bulletinNotes/" + id), note);
+    modal.style.display = "none";
+  } catch (error) {
+    console.error("Failed to post note:", error);
+    status.textContent = "🔴 Failed to post note";
+  }
 };
 
 window.addEventListener("resize", async () => {
@@ -580,7 +612,12 @@ window.addEventListener("resize", async () => {
     if (p.x !== note.x || p.y !== note.y) {
       note.x = p.x;
       note.y = p.y;
-      await set(ref(db, "bulletinNotes/" + id), { ...note });
+
+      try {
+        await set(ref(db, "bulletinNotes/" + id), { ...note });
+      } catch (error) {
+        console.error("Failed to update note after resize:", error);
+      }
     }
   }
 });
