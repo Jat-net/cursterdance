@@ -3,534 +3,302 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>ASG Cursors</title>
-
+<title>Bulletin Board</title>
 <style>
-* {
-  box-sizing: border-box;
-}
+* { box-sizing: border-box; }
 
-html,
-body {
+html, body {
   margin: 0;
   width: 100%;
   height: 100%;
   overflow: hidden;
-  background: #111;
-  color: white;
   font-family: Arial, sans-serif;
+  background: #d8c7a2;
+  color: #222;
 }
 
-/* =========================================================
-   NAME BAR — NO LOGIN / NO ACCOUNT
-   ========================================================= */
-
-.name-bar {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  min-width: 0;
-  padding: 3px;
-  border-radius: 10px;
-  background: rgba(32,32,32,.94);
-  box-shadow: 0 3px 14px rgba(0,0,0,.35);
+body {
+  background:
+    radial-gradient(circle at 20% 15%, rgba(255,255,255,.22), transparent 28%),
+    radial-gradient(circle at 80% 80%, rgba(90,55,20,.12), transparent 32%),
+    repeating-linear-gradient(0deg, rgba(80,50,20,.035) 0 2px, transparent 2px 6px),
+    #cdb88d;
 }
 
-.name-icon {
-  padding-left: 5px;
-  font-size: 14px;
-  flex: 0 0 auto;
+#board {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background:
+    linear-gradient(rgba(125,82,35,.07), rgba(125,82,35,.07)),
+    repeating-linear-gradient(90deg, rgba(255,255,255,.035) 0 3px, transparent 3px 8px),
+    #b88958;
+  box-shadow: inset 0 0 70px rgba(55,30,10,.35);
 }
 
-#nameInput {
-  width: clamp(70px, 12vw, 140px);
-  min-width: 55px;
-  max-width: 140px;
-  padding: 7px 8px;
-  border: 0;
-  outline: none;
-  border-radius: 7px;
-  background: #333;
-  color: white;
-  font: inherit;
+#board::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  box-shadow: inset 0 0 0 12px rgba(77,43,18,.5), inset 0 0 35px rgba(40,20,5,.45);
 }
-
-#nameInput::placeholder { color: #aaa; }
-
-#nameSaveButton {
-  padding: 7px 9px;
-  border-radius: 7px;
-  background: #34c759;
-  color: white;
-  white-space: nowrap;
-}
-
-/* =========================================================
-   TOP BAR
-========================================================= */
 
 #topbar {
   position: fixed;
-  top: 12px;
-  left: 12px;
+  top: 18px;
+  left: 18px;
+  right: 18px;
   z-index: 100000;
   display: flex;
   align-items: center;
-  gap: 7px;
-  max-width: calc(100vw - 24px);
+  gap: 9px;
   flex-wrap: wrap;
-  overflow: visible;
+  pointer-events: none;
 }
+
+#topbar > * { pointer-events: auto; }
 
 button {
   border: 0;
   border-radius: 9px;
-  padding: 9px 12px;
+  padding: 10px 14px;
   font-weight: bold;
   cursor: pointer;
 }
 
-#drawButton {
-  background: #ffcc00;
-  color: #111;
+#newNote {
+  background: #ffdf57;
+  color: #382900;
+  box-shadow: 0 3px 10px rgba(0,0,0,.25);
 }
 
-#chatButton {
-  background: #4c8dff;
-  color: white;
-}
-
-#jellyButton {
-  background: #b85cff;
-  color: white;
-}
 #status {
-  padding: 8px 10px;
+  padding: 9px 12px;
   border-radius: 9px;
-  background: rgba(0,0,0,.75);
-  font-size: 13px;
-}
-
-/* Responsive controls for small windows, fullscreen, and browser zoom */
-@media (max-width: 760px) {
-  #topbar {
-    top: 8px;
-    left: 8px;
-    right: 8px;
-    gap: 5px;
-  }
-  #topbar button {
-    padding: 7px 9px;
-    font-size: 12px;
-  }
-  .name-bar {
-    order: 10;
-    flex: 1 1 180px;
-    max-width: min(100%, 260px);
-  }
-  #nameInput {
-    width: 100%;
-    max-width: none;
-  }
-  #status {
-    font-size: 11px;
-    padding: 7px 8px;
-  }
-}
-
-@media (max-width: 430px) {
-  #topbar { gap: 4px; }
-  #topbar button {
-    padding: 6px 7px;
-    font-size: 11px;
-  }
-  .name-bar { flex-basis: 100%; }
-  #status {
-    max-width: 110px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-}
-
-/* =========================================================
-   REMOTE CURSORS
-========================================================= */
-
-.remote-cursor {
-  position: fixed;
-  z-index: 90000;
-  pointer-events: none;
-  left: 0;
-  top: 0;
-  transition:
-    left .035s linear,
-    top .035s linear;
-}
-
-.cursor-arrow {
-  width: 0;
-  height: 0;
-  border-top: 9px solid transparent;
-  border-bottom: 9px solid transparent;
-  border-left: 15px solid var(--cursor-color);
-  transform: rotate(-45deg);
-  filter: drop-shadow(1px 2px 2px #000);
-}
-
-.cursor-name {
-  position: absolute;
-  left: 10px;
-  top: 12px;
-  padding: 3px 7px;
-  border-radius: 5px;
-  background: var(--cursor-color);
+  background: rgba(30,20,12,.82);
   color: white;
-  white-space: nowrap;
-  font-size: 12px;
+  font-size: 13px;
+  box-shadow: 0 3px 10px rgba(0,0,0,.18);
 }
 
-/* =========================================================
-   TEMPORARY CURSOR MESSAGE
-========================================================= */
-
-.cursor-message {
-  position: absolute;
-  left: 16px;
-  top: 34px;
-  max-width: 230px;
-  padding: 7px 10px;
+#nameBar {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px;
   border-radius: 10px;
-  background: rgba(25,25,25,.94);
-  color: white;
-  font-size: 13px;
-  line-height: 1.25;
-  box-shadow: 0 4px 15px rgba(0,0,0,.45);
-  white-space: normal;
-  word-break: break-word;
+  background: rgba(30,20,12,.88);
+  box-shadow: 0 3px 10px rgba(0,0,0,.22);
 }
 
-/* =========================================================
-   PAINTINGS
-   ~1/4 AREA OF ORIGINAL
-========================================================= */
+#nameInput {
+  width: clamp(100px, 14vw, 170px);
+  padding: 7px 9px;
+  border: 0;
+  outline: none;
+  border-radius: 7px;
+  background: #fff;
+  color: #222;
+  font: inherit;
+}
 
-.painting {
+#saveName {
+  background: #34c759;
+  color: white;
+}
+
+#empty {
   position: fixed;
-  width: 110px;
-  height: 90px;
-  z-index: 50000;
-  background: white;
-  border: 4px solid #6e4428;
-  border-radius: 2px;
-  box-shadow: 0 5px 16px rgba(0,0,0,.5);
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%,-50%);
+  color: rgba(45,25,10,.55);
+  text-align: center;
+  pointer-events: none;
+  font-size: clamp(18px, 3vw, 30px);
+  font-weight: bold;
+}
+
+.note {
+  position: fixed;
+  width: 190px;
+  min-height: 155px;
+  padding: 18px 15px 15px;
+  z-index: 500;
   user-select: none;
   touch-action: none;
+  cursor: grab;
+  color: #302a18;
+  box-shadow: 0 8px 18px rgba(35,20,5,.32);
+  transform: rotate(var(--rotation));
+  transition: box-shadow .12s;
 }
 
-.painting canvas {
-  width: 100%;
-  height: 100%;
-  display: block;
-  background: white;
-  pointer-events: none;
+.note:active {
+  cursor: grabbing;
+  box-shadow: 0 12px 25px rgba(35,20,5,.42);
+  z-index: 9000;
 }
 
-.painting-label {
+.note::before {
+  content: "";
   position: absolute;
-  left: 0;
-  bottom: -20px;
-  padding: 2px 5px;
-  border-radius: 3px;
-  background: rgba(0,0,0,.72);
-  color: white;
-  font-size: 9px;
+  left: 50%;
+  top: -5px;
+  transform: translateX(-50%);
+  width: 54px;
+  height: 15px;
+  background: rgba(210,190,150,.65);
+  box-shadow: 0 1px 3px rgba(0,0,0,.15);
+}
+
+.note.yellow { background: #fff27a; }
+.note.blue { background: #9fe5ff; }
+.note.green { background: #b7efad; }
+.note.pink { background: #ffb5c8; }
+.note.orange { background: #ffc477; }
+
+.noteText {
+  width: 100%;
+  min-height: 92px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 17px;
+  line-height: 1.25;
+}
+
+.noteName {
+  margin-top: 12px;
+  padding-top: 7px;
+  border-top: 1px dashed rgba(50,40,20,.35);
+  font-size: 12px;
+  font-weight: bold;
+  opacity: .7;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.delete-painting {
-  position: absolute;
-  right: -9px;
-  top: -9px;
-  width: 20px;
-  height: 20px;
-  padding: 0;
-  border-radius: 50%;
-  background: #e53935;
-  color: white;
-  display: none;
-}
 
-.painting.mine:hover .delete-painting {
-  display: block;
-}
-
-/* =========================================================
-   JELLY
-   Rendered on canvas as a soft-body ring of points, so the
-   shape here is just a positioned, shadowed canvas element —
-   the actual blob shape is drawn every frame in JS.
-========================================================= */
-
-.jelly-canvas {
-  position: fixed;
-  z-index: 60000;
-  cursor: grab;
-  touch-action: none;
-  user-select: none;
-  filter: drop-shadow(0 6px 14px rgba(0,0,0,.4));
-}
-
-.jelly-canvas:active {
-  cursor: grabbing;
-}
-
-/* =========================================================
-   DRAWING MODAL
-========================================================= */
-
-#drawModal {
+#noteModal {
   position: fixed;
   inset: 0;
   z-index: 200000;
   display: none;
   align-items: center;
   justify-content: center;
-  background: rgba(0,0,0,.76);
+  background: rgba(25,15,5,.62);
+  padding: 20px;
 }
 
-#drawPanel {
-  width: min(600px, 92vw);
-  padding: 18px;
-  border-radius: 15px;
-  background: #222;
-  box-shadow: 0 15px 50px rgba(0,0,0,.6);
+#notePanel {
+  width: min(460px, 94vw);
+  padding: 20px;
+  border-radius: 16px;
+  background: #f5ead0;
+  box-shadow: 0 18px 55px rgba(0,0,0,.45);
 }
 
-#drawCanvas {
+#notePanel h2 {
+  margin: 0 0 14px;
+}
+
+#noteTextInput {
   width: 100%;
-  aspect-ratio: 4 / 3;
-  display: block;
-  background: white;
-  border-radius: 8px;
-  cursor: crosshair;
-  touch-action: none;
+  height: 170px;
+  resize: vertical;
+  padding: 12px;
+  border: 2px solid #d0bc92;
+  border-radius: 10px;
+  outline: none;
+  font: 17px/1.3 Arial, sans-serif;
+  background: #fffdf6;
 }
 
-#drawControls {
+#noteControls {
   display: flex;
-  flex-wrap: wrap;
   gap: 8px;
-  margin-top: 12px;
   align-items: center;
+  flex-wrap: wrap;
+  margin-top: 12px;
 }
 
-#clearDrawing {
-  background: #555;
-  color: white;
+.colorChoice {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 2px solid rgba(0,0,0,.18);
 }
 
-#createPainting {
+#yellow { background:#fff27a; }
+#blue { background:#9fe5ff; }
+#green { background:#b7efad; }
+#pink { background:#ffb5c8; }
+#orange { background:#ffc477; }
+
+#postNote {
+  margin-left: auto;
   background: #4caf50;
   color: white;
 }
 
-#cancelDrawing {
-  background: #d33;
-  color: white;
+#cancelNote {
+  background: #d8d0c0;
+  color: #3b3327;
 }
 
-/* =========================================================
-   CHAT PANEL
-========================================================= */
-
-#chatPanel {
-  position: fixed;
-  right: 15px;
-  bottom: 15px;
-  width: 300px;
-  z-index: 150000;
-  display: none;
-  padding: 14px;
-  border-radius: 14px;
-  background: rgba(25,25,25,.96);
-  box-shadow: 0 10px 40px rgba(0,0,0,.5);
-}
-
-#chatPanel input {
-  width: 100%;
-  padding: 9px;
-  border: 0;
-  border-radius: 8px;
-  outline: none;
-  margin-bottom: 7px;
-}
-
-#sendChat {
-  background: #4c8dff;
-  color: white;
-}
-
-/* =========================================================
-   EMPTY
-========================================================= */
-
-#emptyPaintings {
-  position: fixed;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%,-50%);
-  color: #666;
-  pointer-events: none;
-  text-align: center;
+@media (max-width: 650px) {
+  #topbar { top: 8px; left: 8px; right: 8px; gap: 5px; }
+  button { padding: 8px 10px; }
+  #status { font-size: 11px; }
+  #nameBar { order: 10; flex-basis: 100%; max-width: 280px; }
+  .note { width: 165px; min-height: 140px; }
+  .noteText { font-size: 15px; }
 }
 </style>
 </head>
-
 <body>
 
-
-<!-- =======================================================
-     TOP BAR
-======================================================= -->
+<div id="board"></div>
 
 <div id="topbar">
-
-  <button id="drawButton">
-    🎨 Draw
-  </button>
-
-  <button id="chatButton">
-    💬 Message
-  </button>
-
-  <button id="jellyButton">
-    🟣 Jelly
-  </button>
-
-  <div id="nameBar" class="name-bar">
-    <span class="name-icon">👤</span>
+  <button id="newNote">📌 New Note</button>
+  <div id="nameBar">
+    <span>👤</span>
     <input id="nameInput" maxlength="24" autocomplete="off" placeholder="Your name">
-    <button id="nameSaveButton" type="button">Set Name</button>
+    <button id="saveName" type="button">Set Name</button>
   </div>
-
-  <div id="status">
-    Connecting...
-  </div>
-
+  <div id="status">Connecting...</div>
 </div>
 
+<div id="empty">📌 Stick a note on the board!</div>
 
-<div id="emptyPaintings">
-  Draw something to create a painting!
-</div>
-
-
-<!-- =======================================================
-     DRAW
-======================================================= -->
-
-<div id="drawModal">
-
-  <div id="drawPanel">
-
-    <h2>🎨 Create a Painting</h2>
-
-    <p id="paintingCount">
-      Paintings: 0 / 5
-    </p>
-
-    <canvas
-      id="drawCanvas"
-      width="800"
-      height="600">
-    </canvas>
-
-    <div id="drawControls">
-
-      <label>
-        Brush:
-        <input
-          id="brushSize"
-          type="range"
-          min="1"
-          max="40"
-          value="7">
-      </label>
-
-      <button id="clearDrawing">
-        Clear
-      </button>
-
-      <button id="createPainting">
-        Create Painting
-      </button>
-
-      <button id="cancelDrawing">
-        Cancel
-      </button>
-
+<div id="noteModal">
+  <div id="notePanel">
+    <h2>📌 Post a Note</h2>
+    <textarea id="noteTextInput" maxlength="500" placeholder="Write your note..."></textarea>
+    <div id="noteControls">
+      <span>Color:</span>
+      <button class="colorChoice" id="yellow" data-color="yellow" title="Yellow"></button>
+      <button class="colorChoice" id="blue" data-color="blue" title="Blue"></button>
+      <button class="colorChoice" id="green" data-color="green" title="Green"></button>
+      <button class="colorChoice" id="pink" data-color="pink" title="Pink"></button>
+      <button class="colorChoice" id="orange" data-color="orange" title="Orange"></button>
+      <button id="cancelNote">Cancel</button>
+      <button id="postNote">Stick Note</button>
     </div>
-
   </div>
-
 </div>
-
-
-<!-- =======================================================
-     MESSAGE
-======================================================= -->
-
-<div id="chatPanel">
-
-  <strong>Message everyone</strong>
-
-  <br><br>
-
-  <input
-    id="chatInput"
-    maxlength="300"
-    placeholder="Type a message...">
-
-  <button id="sendChat">
-    Send
-  </button>
-
-  <div style="
-    margin-top:8px;
-    font-size:11px;
-    color:#888;
-  ">
-    Your message appears beside your cursor temporarily.
-  </div>
-
-</div>
-
 
 <script type="module">
+import { initializeApp } from
+  "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
 
 import {
-  initializeApp
+  getDatabase, ref, set, push, onValue, remove
 } from
-"https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
-
-
-
-import {
-  getDatabase,
-  ref,
-  set,
-  push,
-  onValue,
-  onDisconnect,
-  remove
-} from
-"https://www.gstatic.com/firebasejs/12.1.0/firebase-database.js";
-
-
-/* =========================================================
-   FIREBASE
-========================================================= */
+  "https://www.gstatic.com/firebasejs/12.1.0/firebase-database.js";
 
 const firebaseConfig = {
 
@@ -556,1933 +324,266 @@ const firebaseConfig = {
     "1:129479890927:web:ca86b8b7e9aa08b3ab881a"
 };
 
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
 
-const app =
-  initializeApp(firebaseConfig);
+const sessionId =
+  sessionStorage.getItem("bulletinBoardSessionId") ||
+  (crypto.randomUUID ? crypto.randomUUID() :
+    "guest-" + Date.now() + "-" + Math.random().toString(36).slice(2));
 
-const db =
-  getDatabase(app);
+sessionStorage.setItem("bulletinBoardSessionId", sessionId);
 
+let currentName =
+  (localStorage.getItem("bulletinBoardName") || "").trim() || "Guest";
 
-/* =========================================================
-   GLOBAL USER
-========================================================= */
-
-let currentUserId = null;
-let currentUserColor = null;
-let myCursorRef = null;
-let worldStarted = false;
-
-
-const colors = [
-  "#ff3b30",
-  "#007aff",
-  "#34c759",
-  "#af52de",
-  "#ff9500",
-  "#00c7be",
-  "#ff2d55",
-  "#5856d6",
-  "#ff6b00",
-  "#00a8ff"
-];
-
-
-function colorFromUid(uid) {
-
-  let hash = 0;
-
-  for (
-    let i = 0;
-    i < uid.length;
-    i++
-  ) {
-
-    hash =
-      (
-        hash * 31 +
-        uid.charCodeAt(i)
-      ) >>> 0;
-  }
-
-  return colors[
-    hash % colors.length
-  ];
-}
-
-
-/* =========================================================
-   NAME / SESSION
-   No login, no email, no password, no account creation.
-   ========================================================= */
+let selectedColor = "yellow";
+let notes = {};
+const noteElements = new Map();
 
 const nameInput = document.getElementById("nameInput");
-const nameSaveButton = document.getElementById("nameSaveButton");
+const status = document.getElementById("status");
+const modal = document.getElementById("noteModal");
+const noteTextInput = document.getElementById("noteTextInput");
 
-const savedName = (localStorage.getItem("asgCursorName") || "").trim();
-let currentUserName = savedName || "Guest";
+nameInput.value = currentName === "Guest" ? "" : currentName;
 
-nameInput.value = currentUserName === "Guest" ? "" : currentUserName;
-
-function saveDisplayName() {
+function saveName() {
   const value = nameInput.value.trim().replace(/\s+/g, " ").slice(0, 24);
+  currentName = value || "Guest";
 
-  if (!value) {
-    currentUserName = "Guest";
-    localStorage.removeItem("asgCursorName");
+  if (currentName === "Guest") {
+    localStorage.removeItem("bulletinBoardName");
     nameInput.value = "";
   } else {
-    currentUserName = value;
-    localStorage.setItem("asgCursorName", currentUserName);
-    nameInput.value = currentUserName;
-  }
-
-  if (myCursorRef) {
-    set(myCursorRef, {
-      x: lastMouseX,
-      y: lastMouseY,
-      name: currentUserName,
-      color: currentUserColor,
-      lastSeen: Date.now()
-    });
+    localStorage.setItem("bulletinBoardName", currentName);
+    nameInput.value = currentName;
   }
 }
 
-nameSaveButton.onclick = saveDisplayName;
-
-nameInput.addEventListener("keydown", event => {
-  if (event.key === "Enter") {
-    saveDisplayName();
+document.getElementById("saveName").onclick = saveName;
+nameInput.addEventListener("keydown", e => {
+  if (e.key === "Enter") {
+    saveName();
     nameInput.blur();
   }
 });
 
-currentUserId =
-  sessionStorage.getItem("asgCursorSessionId") ||
-  (crypto.randomUUID ? crypto.randomUUID() :
-    "guest-" + Date.now() + "-" + Math.random().toString(36).slice(2));
-
-sessionStorage.setItem("asgCursorSessionId", currentUserId);
-currentUserColor = colorFromUid(currentUserId);
-
-/* =========================================================
-   START WORLD/* =========================================================
-   START WORLD
-========================================================= */
-
-function startWorld() {
-
-  if (worldStarted) {
-    return;
-  }
-
-  worldStarted = true;
-
-  myCursorRef =
-    ref(
-      db,
-      "cursors/" +
-      currentUserId
-    );
-
-  onDisconnect(
-    myCursorRef
-  ).remove();
-
-
-  startCursorSystem();
-  startPaintingSystem();
-  startJellySystem();
-  startMessageSystem();
-}
-
-
-/* =========================================================
-   CURSORS
-========================================================= */
-
-function startCursorSystem() {
-
-  const cursorsRef =
-    ref(db, "cursors");
-
-  const connectedRef =
-    ref(db, ".info/connected");
-
-
-  onValue(
-    connectedRef,
-    snapshot => {
-
-      document.getElementById(
-        "status"
-      ).textContent =
-        snapshot.val()
-          ? "🟢 Connected"
-          : "🔴 Disconnected";
-    }
-  );
-
-
-  let lastUpdate = 0;
-
-
-  document.addEventListener(
-    "mousemove",
-    event => {
-
-      const now =
-        Date.now();
-
-      if (
-        now - lastUpdate < 33
-      ) {
-        return;
-      }
-
-      lastUpdate = now;
-
-
-      set(
-        myCursorRef,
-        {
-          x: event.clientX,
-          y: event.clientY,
-          name: currentUserName,
-          color: currentUserColor,
-          lastSeen: now
-        }
-      );
-    }
-  );
-
-
-  const elements =
-    new Map();
-
-
-  onValue(
-    cursorsRef,
-    snapshot => {
-
-      const users =
-        snapshot.val() || {};
-
-      const now =
-        Date.now();
-
-
-      for (
-        const id in users
-      ) {
-
-        if (
-          id === currentUserId
-        ) {
-          continue;
-        }
-
-
-        const user =
-          users[id];
-
-
-        if (
-          !user.lastSeen ||
-          now - user.lastSeen >
-          10000
-        ) {
-
-          const old =
-            elements.get(id);
-
-          if (old) {
-
-            old.remove();
-
-            elements.delete(id);
-          }
-
-          continue;
-        }
-
-
-        let cursor =
-          elements.get(id);
-
-
-        if (!cursor) {
-
-          cursor =
-            document.createElement(
-              "div"
-            );
-
-          cursor.className =
-            "remote-cursor";
-
-          cursor.innerHTML = `
-            <div class="cursor-arrow"></div>
-            <div class="cursor-name"></div>
-            <div class="cursor-message"></div>
-          `;
-
-          cursor.querySelector(
-            ".cursor-message"
-          ).style.display =
-            "none";
-
-          document.body.appendChild(
-            cursor
-          );
-
-          elements.set(
-            id,
-            cursor
-          );
-        }
-
-
-        cursor.style.left =
-          user.x + "px";
-
-        cursor.style.top =
-          user.y + "px";
-
-        cursor.style.setProperty(
-          "--cursor-color",
-          user.color
-        );
-
-        cursor.querySelector(
-          ".cursor-name"
-        ).textContent =
-          user.name;
-
-
-        if (
-          user.message &&
-          user.messageUntil >
-          Date.now()
-        ) {
-
-          const box =
-            cursor.querySelector(
-              ".cursor-message"
-            );
-
-          box.textContent =
-            user.message;
-
-          box.style.display =
-            "block";
-
-        } else {
-
-          cursor.querySelector(
-            ".cursor-message"
-          ).style.display =
-            "none";
-        }
-      }
-
-
-      for (
-        const [
-          id,
-          element
-        ]
-        of elements
-      ) {
-
-        if (
-          !users[id] ||
-          Date.now() -
-          users[id].lastSeen >
-          10000
-        ) {
-
-          element.remove();
-
-          elements.delete(id);
-        }
-      }
-    }
-  );
-}
-
-
-/* =========================================================
-   TEMPORARY MESSAGES
-========================================================= */
-
-function messageDuration(text) {
-
-  /*
-    Rough reading time:
-    minimum 3 seconds,
-    then approximately 350ms
-    per character.
-  */
-
-  return Math.max(
-    3000,
-    Math.min(
-      15000,
-      1500 +
-      text.length * 100
-    )
-  );
-}
-
-
-function startMessageSystem() {
-
-  const panel =
-    document.getElementById(
-      "chatPanel"
-    );
-
-
-  document.getElementById(
-    "chatButton"
-  ).onclick =
-    () => {
-
-      panel.style.display =
-        panel.style.display ===
-        "block"
-          ? "none"
-          : "block";
-    };
-
-
-  document.getElementById(
-    "sendChat"
-  ).onclick =
-    sendTemporaryMessage;
-
-
-  document.getElementById(
-    "chatInput"
-  ).addEventListener(
-    "keydown",
-    event => {
-
-      if (
-        event.key ===
-        "Enter"
-      ) {
-
-        sendTemporaryMessage();
-      }
-    }
-  );
-
-
-  /*
-    Listen only for temporary
-    cursor messages.
-
-    These are removed after
-    they expire.
-  */
-
-  onValue(
-    ref(db, "cursors"),
-    snapshot => {
-
-      const users =
-        snapshot.val() || {};
-
-      const now =
-        Date.now();
-
-
-      for (
-        const id in users
-      ) {
-
-        const user =
-          users[id];
-
-
-        if (
-          user.message &&
-          user.messageUntil &&
-          user.messageUntil <= now
-        ) {
-
-          if (
-            id === currentUserId
-          ) {
-
-            set(
-              ref(
-                db,
-                "cursors/" +
-                id +
-                "/message"
-              ),
-              null
-            );
-
-          }
-
-        }
-      }
-    }
-  );
-}
-
-
-async function sendTemporaryMessage() {
-
-  const input =
-    document.getElementById(
-      "chatInput"
-    );
-
-  const text =
-    input.value.trim();
-
-
-  if (!text) {
-    return;
-  }
-
-
-  const duration =
-    messageDuration(text);
-
-
-  const until =
-    Date.now() +
-    duration;
-
-
-  /*
-    Message exists only inside
-    the user's cursor record.
-  */
-
-  await set(
-    myCursorRef,
-    {
-      x: lastMouseX,
-      y: lastMouseY,
-      name: currentUserName,
-      color: currentUserColor,
-      lastSeen: Date.now(),
-      message: text,
-      messageUntil: until
-    }
-  );
-
-
-  input.value = "";
-
-
-  setTimeout(
-    async () => {
-
-      /*
-        Only clear it if it is
-        still our current message.
-      */
-
-      const snapshot =
-        await new Promise(
-          resolve => {
-
-            onValue(
-              myCursorRef,
-              resolve,
-              {
-                onlyOnce: true
-              }
-            );
-          }
-        );
-
-
-      const value =
-        snapshot.val();
-
-
-      if (
-        value &&
-        value.messageUntil ===
-        until
-      ) {
-
-        await set(
-          myCursorRef,
-          {
-            ...value,
-            message: null,
-            messageUntil: null
-          }
-        );
-      }
-
-    },
-    duration
-  );
-}
-
-
-let lastMouseX = 0;
-let lastMouseY = 0;
-
-document.addEventListener(
-  "mousemove",
-  event => {
-
-    lastMouseX =
-      event.clientX;
-
-    lastMouseY =
-      event.clientY;
-  }
-);
-
-
-/* =========================================================
-   PAINTINGS
-========================================================= */
-
-let currentPaintings = {};
-
-const paintingElements =
-  new Map();
-
-const PAINTING_W = 110;
-const PAINTING_H = 90;
-const MAX_PAINTINGS = 5;
-
-
-function paintingCount() {
-
-  return Object.values(
-    currentPaintings
-  ).filter(
-    p =>
-      p.owner ===
-      currentUserId
-  ).length;
-}
-
-
-function updatePaintingCount() {
-
-  document.getElementById(
-    "paintingCount"
-  ).textContent =
-    `Paintings: ${paintingCount()} / 5`;
-}
-
-
-function rectanglesOverlap(
-  a,
-  b
-) {
-
-  return !(
-    a.x + PAINTING_W <= b.x ||
-    a.x >= b.x + PAINTING_W ||
-    a.y + PAINTING_H <= b.y ||
-    a.y >= b.y + PAINTING_H
-  );
-}
-
-
-function clampPainting(
-  x,
-  y
-) {
-
+document.querySelectorAll(".colorChoice").forEach(button => {
+  button.onclick = () => {
+    selectedColor = button.dataset.color;
+    document.querySelectorAll(".colorChoice").forEach(b => {
+      b.style.outline = b === button ? "3px solid #333" : "none";
+    });
+  };
+});
+document.getElementById("yellow").click();
+
+function clampPosition(x, y) {
+  const w = 190;
+  const h = 155;
   return {
-
-    x:
-      Math.max(
-        5,
-        Math.min(
-          x,
-          window.innerWidth -
-          PAINTING_W -
-          5
-        )
-      ),
-
-    y:
-      Math.max(
-        5,
-        Math.min(
-          y,
-          window.innerHeight -
-          PAINTING_H -
-          5
-        )
-      )
+    x: Math.max(8, Math.min(x, window.innerWidth - w - 8)),
+    y: Math.max(80, Math.min(y, window.innerHeight - h - 8))
   };
 }
 
+function findPosition() {
+  const existing = Object.values(notes);
 
-function findPaintingPosition() {
-
-  const maxX =
-    Math.max(
-      5,
-      window.innerWidth -
-      PAINTING_W -
-      5
+  for (let i = 0; i < 150; i++) {
+    const p = clampPosition(
+      25 + Math.random() * Math.max(30, window.innerWidth - 240),
+      95 + Math.random() * Math.max(30, window.innerHeight - 270)
     );
 
-  const maxY =
-    Math.max(
-      5,
-      window.innerHeight -
-      PAINTING_H -
-      5
+    const overlaps = existing.some(n =>
+      Math.abs(p.x - n.x) < 175 &&
+      Math.abs(p.y - n.y) < 145
     );
 
-
-  for (
-    let attempt = 0;
-    attempt < 300;
-    attempt++
-  ) {
-
-    const candidate = {
-
-      x:
-        Math.random() *
-        maxX,
-
-      y:
-        Math.random() *
-        maxY
-    };
-
-
-    let blocked = false;
-
-
-    for (
-      const painting
-      of Object.values(
-        currentPaintings
-      )
-    ) {
-
-      if (
-        rectanglesOverlap(
-          candidate,
-          painting
-        )
-      ) {
-
-        blocked = true;
-        break;
-      }
-    }
-
-
-    if (!blocked) {
-      return candidate;
-    }
+    if (!overlaps) return p;
   }
 
-
-  return null;
-}
-
-
-function paintingWouldOverlap(
-  id,
-  x,
-  y
-) {
-
-  const candidate = {
-    x,
-    y
-  };
-
-
-  for (
-    const [
-      otherId,
-      painting
-    ]
-    of Object.entries(
-      currentPaintings
-    )
-  ) {
-
-    if (
-      otherId === id
-    ) {
-      continue;
-    }
-
-
-    if (
-      rectanglesOverlap(
-        candidate,
-        painting
-      )
-    ) {
-
-      return true;
-    }
-  }
-
-
-  return false;
-}
-
-
-function startPaintingSystem() {
-
-  onValue(
-    ref(db, "paintings"),
-    snapshot => {
-
-      currentPaintings =
-        snapshot.val() || {};
-
-
-      document.getElementById(
-        "emptyPaintings"
-      ).style.display =
-        Object.keys(
-          currentPaintings
-        ).length
-          ? "none"
-          : "block";
-
-
-      for (
-        const id in currentPaintings
-      ) {
-
-        const painting =
-          currentPaintings[id];
-
-
-        let element =
-          paintingElements.get(id);
-
-
-        if (!element) {
-
-          element =
-            document.createElement(
-              "div"
-            );
-
-          element.className =
-            "painting";
-
-
-          element.innerHTML = `
-            <canvas width="102" height="82"></canvas>
-            <div class="painting-label"></div>
-            <button class="delete-painting">×</button>
-          `;
-
-
-          document.body.appendChild(
-            element
-          );
-
-          paintingElements.set(
-            id,
-            element
-          );
-
-
-          const image =
-            new Image();
-
-
-          image.onload =
-            () => {
-
-              const c =
-                element.querySelector(
-                  "canvas"
-                );
-
-              const context =
-                c.getContext("2d");
-
-              context.drawImage(
-                image,
-                0,
-                0,
-                c.width,
-                c.height
-              );
-            };
-
-
-          image.src =
-            painting.image;
-
-
-          element.querySelector(
-            ".painting-label"
-          ).textContent =
-            "🎨 " +
-            painting.ownerName;
-
-
-          if (
-            painting.owner ===
-            currentUserId
-          ) {
-
-            element.classList.add(
-              "mine"
-            );
-          }
-
-
-          element.querySelector(
-            ".delete-painting"
-          ).onclick =
-            async event => {
-
-              event.stopPropagation();
-
-              if (
-                painting.owner ===
-                currentUserId
-              ) {
-
-                await remove(
-                  ref(
-                    db,
-                    "paintings/" +
-                    id
-                  )
-                );
-              }
-            };
-
-
-          setupPaintingDrag(
-            element,
-            id
-          );
-        }
-
-
-        element.style.left =
-          painting.x + "px";
-
-        element.style.top =
-          painting.y + "px";
-      }
-
-
-      for (
-        const [
-          id,
-          element
-        ]
-        of paintingElements
-      ) {
-
-        if (
-          !currentPaintings[id]
-        ) {
-
-          element.remove();
-
-          paintingElements.delete(
-            id
-          );
-        }
-      }
-
-
-      updatePaintingCount();
-    }
+  return clampPosition(
+    window.innerWidth / 2 - 95,
+    window.innerHeight / 2 - 70
   );
 }
 
+function createNoteElement(id, note) {
+  const el = document.createElement("div");
+  el.className = "note " + (note.color || "yellow");
+  el.style.setProperty("--rotation", (note.rotation || 0) + "deg");
 
-function setupPaintingDrag(
-  element,
-  id
-) {
+  el.innerHTML = `
+    <div class="noteText"></div>
+    <div class="noteName"></div>
+  `;
 
+  el.querySelector(".noteText").textContent = note.text || "";
+  el.querySelector(".noteName").textContent =
+    "— " + (note.name || "Guest");
+
+  if (note.owner === sessionId) {
+    el.classList.add("mine");
+  }
+
+  el.querySelector(".deleteNote").onclick = async event => {
+    event.stopPropagation();
+
+    const current = notes[id];
+    if (current && current.owner === sessionId) {
+      await remove(ref(db, "bulletinNotes/" + id));
+    }
+  };
+
+  setupDrag(el, id);
+  document.body.appendChild(el);
+  noteElements.set(id, el);
+  return el;
+}
+
+function renderNotes() {
+  document.getElementById("empty").style.display =
+    Object.keys(notes).length ? "none" : "block";
+
+  for (const id in notes) {
+    const note = notes[id];
+    let el = noteElements.get(id);
+
+    if (!el) el = createNoteElement(id, note);
+
+    el.style.left = note.x + "px";
+    el.style.top = note.y + "px";
+    el.style.setProperty("--rotation", (note.rotation || 0) + "deg");
+
+    const nameEl = el.querySelector(".noteName");
+    nameEl.textContent = "— " + (note.name || "Guest");
+
+    if (note.owner === sessionId) el.classList.add("mine");
+    else el.classList.remove("mine");
+  }
+
+  for (const [id, el] of noteElements) {
+    if (!notes[id]) {
+      el.remove();
+      noteElements.delete(id);
+    }
+  }
+}
+
+function setupDrag(el, id) {
   let dragging = false;
   let offsetX = 0;
   let offsetY = 0;
 
-
-  element.addEventListener(
-    "pointerdown",
-    event => {
-
-      if (
-        event.target.closest(
-          ".delete-painting"
-        )
-      ) {
-        return;
-      }
-
-
-      const painting =
-        currentPaintings[id];
-
-      if (!painting) {
-        return;
-      }
-
-
-      dragging = true;
-
-
-      offsetX =
-        event.clientX -
-        painting.x;
-
-      offsetY =
-        event.clientY -
-        painting.y;
-
-
-      element.setPointerCapture(
-        event.pointerId
-      );
-    }
-  );
-
-
-  element.addEventListener(
-    "pointermove",
-    event => {
-
-      if (!dragging) {
-        return;
-      }
-
-
-      const painting =
-        currentPaintings[id];
-
-      if (!painting) {
-        return;
-      }
-
-
-      const position =
-        clampPainting(
-          event.clientX -
-          offsetX,
-
-          event.clientY -
-          offsetY
-        );
-
-
-      if (
-        paintingWouldOverlap(
-          id,
-          position.x,
-          position.y
-        )
-      ) {
-
-        return;
-      }
-
-
-      element.style.left =
-        position.x + "px";
-
-      element.style.top =
-        position.y + "px";
-
-
-      painting.x =
-        position.x;
-
-      painting.y =
-        position.y;
-    }
-  );
-
-
-  element.addEventListener(
-    "pointerup",
-    async () => {
-
-      if (!dragging) {
-        return;
-      }
-
-      dragging = false;
-
-
-      const painting =
-        currentPaintings[id];
-
-      if (!painting) {
-        return;
-      }
-
-
-      await set(
-        ref(
-          db,
-          "paintings/" +
-          id
-        ),
-        {
-          ...painting
-        }
-      );
-    }
-  );
-}
-
-
-/* =========================================================
-   DRAWING
-========================================================= */
-
-const drawModal =
-  document.getElementById(
-    "drawModal"
-  );
-
-const drawCanvas =
-  document.getElementById(
-    "drawCanvas"
-  );
-
-const drawCtx =
-  drawCanvas.getContext("2d");
-
-let drawing = false;
-let drawLastX = 0;
-let drawLastY = 0;
-
-
-function clearDrawing() {
-
-  drawCtx.fillStyle =
-    "white";
-
-  drawCtx.fillRect(
-    0,
-    0,
-    drawCanvas.width,
-    drawCanvas.height
-  );
-}
-
-
-clearDrawing();
-
-
-function drawingPosition(
-  event
-) {
-
-  const rect =
-    drawCanvas.getBoundingClientRect();
-
-
-  return {
-
-    x:
-      (event.clientX -
-       rect.left) *
-      drawCanvas.width /
-      rect.width,
-
-    y:
-      (event.clientY -
-       rect.top) *
-      drawCanvas.height /
-      rect.height
-  };
-}
-
-
-drawCanvas.addEventListener(
-  "pointerdown",
-  event => {
-
-    drawing = true;
-
-    const p =
-      drawingPosition(event);
-
-    drawLastX = p.x;
-    drawLastY = p.y;
-  }
-);
-
-
-drawCanvas.addEventListener(
-  "pointermove",
-  event => {
-
-    if (!drawing) {
-      return;
-    }
-
-
-    const p =
-      drawingPosition(event);
-
-
-    drawCtx.strokeStyle =
-      "#111";
-
-    drawCtx.lineWidth =
-      Number(
-        document.getElementById(
-          "brushSize"
-        ).value
-      );
-
-    drawCtx.lineCap =
-      "round";
-
-    drawCtx.lineJoin =
-      "round";
-
-
-    drawCtx.beginPath();
-
-    drawCtx.moveTo(
-      drawLastX,
-      drawLastY
-    );
-
-    drawCtx.lineTo(
-      p.x,
-      p.y
-    );
-
-    drawCtx.stroke();
-
-
-    drawLastX = p.x;
-    drawLastY = p.y;
-  }
-);
-
-
-drawCanvas.addEventListener(
-  "pointerup",
-  () => {
-    drawing = false;
-  }
-);
-
-
-document.getElementById(
-  "drawButton"
-).onclick =
-() => {
-
-  updatePaintingCount();
-
-
-  if (
-    paintingCount() >=
-    MAX_PAINTINGS
-  ) {
-
-    alert(
-      "You already have 5 paintings."
-    );
-
-    return;
-  }
-
-
-  drawModal.style.display =
-    "flex";
-};
-
-
-document.getElementById(
-  "clearDrawing"
-).onclick =
-clearDrawing;
-
-
-document.getElementById(
-  "cancelDrawing"
-).onclick =
-() => {
-
-  drawModal.style.display =
-    "none";
-
-  clearDrawing();
-};
-
-
-document.getElementById(
-  "createPainting"
-).onclick =
-async () => {
-
-  if (
-    paintingCount() >=
-    MAX_PAINTINGS
-  ) {
-
-    alert(
-      "You already have 5 paintings."
-    );
-
-    return;
-  }
-
-
-  const position =
-    findPaintingPosition();
-
-
-  if (!position) {
-
-    alert(
-      "There isn't enough room for another painting."
-    );
-
-    return;
-  }
-
-
-  const id =
-    push(
-      ref(db, "paintings")
-    ).key;
-
-
-  await set(
-    ref(
-      db,
-      "paintings/" +
-      id
-    ),
-    {
-
-      owner:
-        currentUserId,
-
-      ownerName:
-        currentUserName,
-
-      image:
-        drawCanvas.toDataURL(
-          "image/png"
-        ),
-
-      x:
-        position.x,
-
-      y:
-        position.y,
-
-      created:
-        Date.now()
-    }
-  );
-
-
-  drawModal.style.display =
-    "none";
-
-  clearDrawing();
-};
-
-
-/* =========================================================
-   JELLY SYSTEM — soft-body "liquid jelly" physics
-
-   Each jelly is a ring of points anchored to an invisible
-   center by springs. The cursor dents whichever points it
-   gets close to; a neighbor-pull pass spreads that dent
-   across the surface like liquid instead of letting each
-   point move independently and spike. The whole ring is
-   re-drawn on canvas every frame as a smooth closed curve.
-========================================================= */
-
-const JELLY_W = 55;
-const JELLY_H = 48;
-
-const JELLY_POINTS = 12;    // points forming the blob's outline
-const REST_RX = 27;         // resting radius (x) around the center
-const REST_RY = 23;         // resting radius (y) around the center
-const CANVAS_W = 170;       // extra room so the blob can bulge outward
-const CANVAS_H = 150;
-
-const SPRING_K = 0.22;      // how hard a point springs back to rest
-const DAMPING = 0.78;       // velocity damping per frame (jiggle decay)
-const NEIGHBOR_PULL = 0.12; // pulls a point toward its neighbors' midpoint
-const CURSOR_RADIUS = 50;   // how far the cursor reaches into the jelly
-const CURSOR_PUSH = 16;     // strength of the cursor's local dent
-const CENTER_NUDGE = 0.18;  // how much a big dent nudges the whole blob
-
-let currentJellies = {};
-const jellyElements = new Map(); // id -> <canvas>
-const softBodies = new Map();    // id -> { points: [{ox,oy,x,y,vx,vy}] }
-let jellyLoopStarted = false;
-let draggingJellyId = null;
-
-
-function createSoftBody(centerX, centerY) {
-
-  const points = [];
-
-  for (let i = 0; i < JELLY_POINTS; i++) {
-
-    const angle = (i / JELLY_POINTS) * Math.PI * 2;
-    const ox = Math.cos(angle) * REST_RX;
-    const oy = Math.sin(angle) * REST_RY;
-
-    points.push({
-      ox,
-      oy,
-      x: centerX + ox,
-      y: centerY + oy,
-      vx: 0,
-      vy: 0
-    });
-  }
-
-  return { points };
-}
-
-
-function startJellySystem() {
-
-  onValue(ref(db, "jellies"), snapshot => {
-
-    currentJellies = snapshot.val() || {};
-
-    for (const id in currentJellies) {
-
-      const jelly = currentJellies[id];
-      let canvas = jellyElements.get(id);
-
-      if (!canvas) {
-
-        canvas = document.createElement("canvas");
-        canvas.className = "jelly-canvas";
-        canvas.width = CANVAS_W;
-        canvas.height = CANVAS_H;
-
-        document.body.appendChild(canvas);
-        jellyElements.set(id, canvas);
-
-        softBodies.set(
-          id,
-          createSoftBody(
-            jelly.x + JELLY_W / 2,
-            jelly.y + JELLY_H / 2
-          )
-        );
-
-        setupJellyDrag(canvas, id);
-      }
-    }
-
-    for (const [id, canvas] of jellyElements) {
-
-      if (!currentJellies[id]) {
-
-        canvas.remove();
-        jellyElements.delete(id);
-        softBodies.delete(id);
-        activeThrows.delete(id);
-      }
-    }
-
-    if (!jellyLoopStarted) {
-
-      jellyLoopStarted = true;
-      requestAnimationFrame(jellyLoop);
-    }
-  });
-
-  document.getElementById("jellyButton").onclick = spawnJelly;
-}
-
-
-function spawnJelly() {
-
-  const id = push(ref(db, "jellies")).key;
-
-  const x = Math.max(5, Math.min(lastMouseX - 25, window.innerWidth - JELLY_W - 5));
-  const y = Math.max(5, Math.min(lastMouseY - 22, window.innerHeight - JELLY_H - 5));
-
-  set(ref(db, "jellies/" + id), {
-    owner: currentUserId,
-    x,
-    y,
-    vx: 0,
-    vy: 0,
-    created: Date.now()
-  });
-}
-
-
-/* =========================================================
-   SOFT-BODY PHYSICS LOOP
-   Runs continuously, for every jelly, on every client — this
-   is what makes the squish real physics instead of a canned
-   animation: it reacts to wherever your cursor actually is.
-========================================================= */
-
-function jellyLoop() {
-
-  for (const id in currentJellies) {
-
-    const jelly = currentJellies[id];
-    const soft = softBodies.get(id);
-
-    if (!jelly || !soft) {
-      continue;
-    }
-
-    const centerX = jelly.x + JELLY_W / 2;
-    const centerY = jelly.y + JELLY_H / 2;
-
-    let pushX = 0;
-    let pushY = 0;
-
-    for (const p of soft.points) {
-
-      const restX = centerX + p.ox;
-      const restY = centerY + p.oy;
-
-      let ax = (restX - p.x) * SPRING_K;
-      let ay = (restY - p.y) * SPRING_K;
-
-      const dx = p.x - lastMouseX;
-      const dy = p.y - lastMouseY;
-      const dist = Math.sqrt(dx * dx + dy * dy) || 0.0001;
-
-      if (dist < CURSOR_RADIUS) {
-
-        const force = (CURSOR_RADIUS - dist) / CURSOR_RADIUS;
-
-        ax += (dx / dist) * force * CURSOR_PUSH;
-        ay += (dy / dist) * force * CURSOR_PUSH;
-
-        pushX += (dx / dist) * force;
-        pushY += (dy / dist) * force;
-      }
-
-      p.vx = (p.vx + ax) * DAMPING;
-      p.vy = (p.vy + ay) * DAMPING;
-
-      p.x += p.vx;
-      p.y += p.vy;
-    }
-
-    // Neighbor pull — spreads a dent across the surface like
-    // liquid instead of each point moving independently.
-    const n = soft.points.length;
-    const next = soft.points.map((p, i) => {
-
-      const a = soft.points[(i - 1 + n) % n];
-      const b = soft.points[(i + 1) % n];
-
-      return {
-        x: p.x + ((a.x + b.x) / 2 - p.x) * NEIGHBOR_PULL,
-        y: p.y + ((a.y + b.y) / 2 - p.y) * NEIGHBOR_PULL
-      };
-    });
-
-    soft.points.forEach((p, i) => {
-      p.x = next[i].x;
-      p.y = next[i].y;
-    });
-
-    renderJelly(id, centerX, centerY, soft.points);
-
-    // A firm poke nudges the whole blob, like bumping a cup of jelly.
-    if ((pushX || pushY) && id !== draggingJellyId) {
-
-      jelly.vx = (jelly.vx || 0) - pushX * CENTER_NUDGE;
-      jelly.vy = (jelly.vy || 0) - pushY * CENTER_NUDGE;
-
-      if (!activeThrows.has(id)) {
-        animateThrownJelly(id);
-      }
-    }
-  }
-
-  requestAnimationFrame(jellyLoop);
-}
-
-
-function renderJelly(id, centerX, centerY, points) {
-
-  const canvas = jellyElements.get(id);
-
-  if (!canvas) {
-    return;
-  }
-
-  canvas.style.left = (centerX - CANVAS_W / 2) + "px";
-  canvas.style.top = (centerY - CANVAS_H / 2) + "px";
-
-  const ctx = canvas.getContext("2d");
-  ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
-
-  const local = points.map(p => ({
-    x: p.x - centerX + CANVAS_W / 2,
-    y: p.y - centerY + CANVAS_H / 2
-  }));
-
-  const n = local.length;
-
-  ctx.beginPath();
-
-  for (let i = 0; i < n; i++) {
-
-    const p0 = local[(i - 1 + n) % n];
-    const p1 = local[i];
-    const p2 = local[(i + 1) % n];
-    const p3 = local[(i + 2) % n];
-
-    // Catmull-Rom -> Bezier, so the outline is a smooth closed
-    // curve through the points rather than a jagged polygon.
-    const cp1x = p1.x + (p2.x - p0.x) / 6;
-    const cp1y = p1.y + (p2.y - p0.y) / 6;
-    const cp2x = p2.x - (p3.x - p1.x) / 6;
-    const cp2y = p2.y - (p3.y - p1.y) / 6;
-
-    if (i === 0) {
-      ctx.moveTo(p1.x, p1.y);
-    }
-
-    ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, p2.x, p2.y);
-  }
-
-  ctx.closePath();
-
-  const base = ctx.createLinearGradient(0, 0, CANVAS_W, CANVAS_H);
-  base.addColorStop(0, "#e887ff");
-  base.addColorStop(1, "#9d43ed");
-  ctx.fillStyle = base;
-  ctx.fill();
-
-  ctx.save();
-  ctx.clip();
-
-  const highlight = ctx.createRadialGradient(
-    CANVAS_W / 2 - 14, CANVAS_H / 2 - 16, 2,
-    CANVAS_W / 2 - 14, CANVAS_H / 2 - 16, 42
-  );
-  highlight.addColorStop(0, "rgba(255,255,255,.75)");
-  highlight.addColorStop(1, "rgba(255,255,255,0)");
-  ctx.fillStyle = highlight;
-  ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
-
-  const shade = ctx.createRadialGradient(
-    CANVAS_W / 2 + 16, CANVAS_H / 2 + 18, 2,
-    CANVAS_W / 2 + 16, CANVAS_H / 2 + 18, 50
-  );
-  shade.addColorStop(0, "rgba(74,0,120,.28)");
-  shade.addColorStop(1, "rgba(74,0,120,0)");
-  ctx.fillStyle = shade;
-  ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
-
-  ctx.restore();
-}
-
-
-/* =========================================================
-   JELLY DRAG / THROW
-========================================================= */
-
-function setupJellyDrag(element, id) {
-
-  let dragging = false;
-
-  let offsetX = 0;
-  let offsetY = 0;
-
-  let previousX = 0;
-  let previousY = 0;
-  let previousTime = 0;
-
-  element.addEventListener("pointerdown", event => {
-
-    const jelly = currentJellies[id];
-
-    if (!jelly) {
-      return;
-    }
+  el.addEventListener("pointerdown", event => {
+    const note = notes[id];
+    if (!note) return;
 
     dragging = true;
-    draggingJellyId = id;
+    el.style.zIndex = String(10000 + Date.now() % 1000);
 
-    offsetX = event.clientX - jelly.x;
-    offsetY = event.clientY - jelly.y;
+    offsetX = event.clientX - note.x;
+    offsetY = event.clientY - note.y;
 
-    previousX = event.clientX;
-    previousY = event.clientY;
-    previousTime = performance.now();
-
-    element.setPointerCapture(event.pointerId);
+    el.setPointerCapture(event.pointerId);
   });
 
-  element.addEventListener("pointermove", event => {
+  el.addEventListener("pointermove", event => {
+    if (!dragging) return;
 
-    if (!dragging) {
-      return;
-    }
+    const note = notes[id];
+    if (!note) return;
 
-    const jelly = currentJellies[id];
+    const p = clampPosition(
+      event.clientX - offsetX,
+      event.clientY - offsetY
+    );
 
-    if (!jelly) {
-      return;
-    }
+    el.style.left = p.x + "px";
+    el.style.top = p.y + "px";
 
-    const now = performance.now();
-    const dt = Math.max(1, now - previousTime);
-
-    const x = Math.max(0, Math.min(event.clientX - offsetX, window.innerWidth - JELLY_W));
-    const y = Math.max(0, Math.min(event.clientY - offsetY, window.innerHeight - JELLY_H));
-
-    jelly.x = x;
-    jelly.y = y;
-
-    jelly.vx = (event.clientX - previousX) / dt * 18;
-    jelly.vy = (event.clientY - previousY) / dt * 18;
-
-    previousX = event.clientX;
-    previousY = event.clientY;
-    previousTime = now;
-
-    set(ref(db, "jellies/" + id), {
-      ...jelly,
-      owner: jelly.owner || currentUserId
-    });
+    note.x = p.x;
+    note.y = p.y;
   });
 
-  element.addEventListener("pointerup", async () => {
-
-    if (!dragging) {
-      return;
-    }
-
+  el.addEventListener("pointerup", async () => {
+    if (!dragging) return;
     dragging = false;
-    draggingJellyId = null;
 
-    const jelly = currentJellies[id];
+    const note = notes[id];
+    if (!note) return;
 
-    if (!jelly) {
-      return;
-    }
+    await set(ref(db, "bulletinNotes/" + id), { ...note });
+  });
 
-    await set(ref(db, "jellies/" + id), { ...jelly });
-
-    animateThrownJelly(id);
+  el.addEventListener("pointercancel", () => {
+    dragging = false;
   });
 }
 
+onValue(ref(db, ".info/connected"), snapshot => {
+  status.textContent = snapshot.val()
+    ? "🟢 Connected"
+    : "🔴 Disconnected";
+});
 
-/* =========================================================
-   JELLY PHYSICS (center-of-mass momentum, edges, collisions)
-========================================================= */
+onValue(ref(db, "bulletinNotes"), snapshot => {
+  notes = snapshot.val() || {};
+  renderNotes();
+});
 
-const activeThrows = new Set();
+document.getElementById("newNote").onclick = () => {
+  noteTextInput.value = "";
+  modal.style.display = "flex";
+  setTimeout(() => noteTextInput.focus(), 30);
+};
 
-function animateThrownJelly(id) {
+document.getElementById("cancelNote").onclick = () => {
+  modal.style.display = "none";
+};
 
-  if (activeThrows.has(id)) {
+modal.addEventListener("pointerdown", event => {
+  if (event.target === modal) modal.style.display = "none";
+});
+
+document.getElementById("postNote").onclick = async () => {
+  const text = noteTextInput.value.trim();
+  if (!text) {
+    noteTextInput.focus();
     return;
   }
 
-  activeThrows.add(id);
+  const position = findPosition();
+  const id = push(ref(db, "bulletinNotes")).key;
 
-  let last = performance.now();
+  await set(ref(db, "bulletinNotes/" + id), {
+    owner: sessionId,
+    name: currentName,
+    text: text.slice(0, 500),
+    color: selectedColor,
+    x: position.x,
+    y: position.y,
+    rotation: Math.round((Math.random() * 6 - 3) * 10) / 10,
+    created: Date.now()
+  });
 
-  function frame(now) {
+  modal.style.display = "none";
+};
 
-    const jelly = currentJellies[id];
+window.addEventListener("resize", async () => {
+  for (const [id, note] of Object.entries(notes)) {
+    const p = clampPosition(note.x, note.y);
 
-    if (!jelly) {
-      activeThrows.delete(id);
-      return;
-    }
-
-    const dt = Math.min(40, now - last) / 1000;
-    last = now;
-
-    jelly.x += (jelly.vx || 0) * dt;
-    jelly.y += (jelly.vy || 0) * dt;
-
-    if (jelly.x < 0) {
-      jelly.x = 0;
-      jelly.vx = Math.abs(jelly.vx || 0) * .72;
-    }
-
-    if (jelly.x > window.innerWidth - JELLY_W) {
-      jelly.x = window.innerWidth - JELLY_W;
-      jelly.vx = -Math.abs(jelly.vx || 0) * .72;
-    }
-
-    if (jelly.y < 0) {
-      jelly.y = 0;
-      jelly.vy = Math.abs(jelly.vy || 0) * .72;
-    }
-
-    if (jelly.y > window.innerHeight - JELLY_H) {
-      jelly.y = window.innerHeight - JELLY_H;
-      jelly.vy = -Math.abs(jelly.vy || 0) * .72;
-    }
-
-    jelly.vx *= Math.pow(.18, dt);
-    jelly.vy *= Math.pow(.18, dt);
-
-    resolveJellyCollisions(id);
-
-    if (Math.abs(jelly.vx) < .03 && Math.abs(jelly.vy) < .03) {
-
-      jelly.vx = 0;
-      jelly.vy = 0;
-
-      set(ref(db, "jellies/" + id), { ...jelly });
-
-      activeThrows.delete(id);
-      return;
-    }
-
-    requestAnimationFrame(frame);
-  }
-
-  requestAnimationFrame(frame);
-}
-
-
-/* =========================================================
-   JELLY COLLISIONS (center to center, so blobs bump apart)
-========================================================= */
-
-function resolveJellyCollisions(movingId) {
-
-  const moving = currentJellies[movingId];
-
-  if (!moving) {
-    return;
-  }
-
-  for (const [id, other] of Object.entries(currentJellies)) {
-
-    if (id === movingId) {
-      continue;
-    }
-
-    const dx = (moving.x + JELLY_W / 2) - (other.x + JELLY_W / 2);
-    const dy = (moving.y + JELLY_H / 2) - (other.y + JELLY_H / 2);
-
-    const distance = Math.sqrt(dx * dx + dy * dy);
-    const minimum = 44;
-
-    if (distance > 0 && distance < minimum) {
-
-      const nx = dx / distance;
-      const ny = dy / distance;
-      const overlapAmount = minimum - distance;
-
-      moving.x += nx * overlapAmount * .35;
-      moving.y += ny * overlapAmount * .35;
-
-      const relativeVelocity =
-        ((moving.vx || 0) - (other.vx || 0)) * nx +
-        ((moving.vy || 0) - (other.vy || 0)) * ny;
-
-      if (relativeVelocity < 0) {
-
-        const impulse = -relativeVelocity * .55;
-
-        moving.vx += nx * impulse;
-        moving.vy += ny * impulse;
-      }
+    if (p.x !== note.x || p.y !== note.y) {
+      note.x = p.x;
+      note.y = p.y;
+      await set(ref(db, "bulletinNotes/" + id), { ...note });
     }
   }
-}
-
-
-/* =========================================================
-   KEEP PAINTINGS ON SCREEN
-========================================================= */
-
-window.addEventListener(
-  "resize",
-  () => {
-
-    for (
-      const id in currentPaintings
-    ) {
-
-      const painting =
-        currentPaintings[id];
-
-
-      const position =
-        clampPainting(
-          painting.x,
-          painting.y
-        );
-
-
-      if (
-        position.x !==
-        painting.x ||
-        position.y !==
-        painting.y
-      ) {
-
-        painting.x =
-          position.x;
-
-        painting.y =
-          position.y;
-
-
-        set(
-          ref(
-            db,
-            "paintings/" +
-            id
-          ),
-          {
-            ...painting
-          }
-        );
-      }
-    }
-  }
-);
-
-/* Start immediately — there is no login gate. */
-startWorld();
-
+});
 </script>
-
 </body>
 </html>
